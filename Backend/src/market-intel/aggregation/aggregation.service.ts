@@ -45,31 +45,34 @@ export class AggregationService {
       select: { skillsRequired: true, salaryMin: true, salaryMax: true },
     });
 
-    const skillMap = new Map<string, { count: number; salaries: number[] }>();
+    const skillMap = new Map<string, { count: number; mins: number[]; maxes: number[] }>();
 
     for (const job of jobs) {
       const skills = (job.skillsRequired as string[]) || [];
-      const salaryMid =
-        job.salaryMin && job.salaryMax ? (job.salaryMin + job.salaryMax) / 2 : null;
 
       for (const skill of skills) {
         const normalized = skill.trim();
         if (!normalized) continue;
         if (!skillMap.has(normalized)) {
-          skillMap.set(normalized, { count: 0, salaries: [] });
+          skillMap.set(normalized, { count: 0, mins: [], maxes: [] });
         }
         const entry = skillMap.get(normalized)!;
         entry.count++;
-        if (salaryMid !== null) entry.salaries.push(salaryMid);
+        if (job.salaryMin) entry.mins.push(job.salaryMin);
+        if (job.salaryMax) entry.maxes.push(job.salaryMax);
       }
     }
 
+    // avgSalaryLow/High are the average of jobs' salaryMin/salaryMax for this
+    // skill (the field names say "avg" — they must actually be averages, not
+    // the min/max of per-job midpoints, which is a different, misleading
+    // statistic despite superficially looking like a plausible "range").
+    const average = (values: number[]) => values.reduce((sum, v) => sum + v, 0) / values.length;
+
     let aggregated = 0;
     for (const [skillName, data] of skillMap.entries()) {
-      const avgSalaryLow =
-        data.salaries.length > 0 ? Math.round(Math.min(...data.salaries)) : undefined;
-      const avgSalaryHigh =
-        data.salaries.length > 0 ? Math.round(Math.max(...data.salaries)) : undefined;
+      const avgSalaryLow = data.mins.length > 0 ? Math.round(average(data.mins)) : undefined;
+      const avgSalaryHigh = data.maxes.length > 0 ? Math.round(average(data.maxes)) : undefined;
 
       await this.skillTrendsRepository.upsertTrend({
         skillName,

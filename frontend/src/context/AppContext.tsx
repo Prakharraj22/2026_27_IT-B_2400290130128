@@ -32,10 +32,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      getProfile().then(setUser).catch(() => logout());
-      refreshNotifications();
-    }
+    if (!isAuthenticated) return;
+    // Guards against a rapid login -> logout (or login -> different login)
+    // where this fetch resolves after the auth state has already moved on —
+    // without this, a stale profile response could overwrite the current
+    // user, or repopulate `user` right after a logout cleared it.
+    let ignore = false;
+    getProfile()
+      .then((u) => {
+        if (!ignore) setUser(u);
+      })
+      .catch(() => {
+        if (!ignore) logout();
+      });
+    refreshNotifications();
+    return () => {
+      ignore = true;
+    };
   }, [isAuthenticated]);
 
   const refreshNotifications = () => {

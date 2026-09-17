@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { Button } from '../../components/ui';
+import { useToast } from '../../components/ui/Toast';
 import { StepPersonal } from './StepPersonal';
 import { StepSkills } from './StepSkills';
 import { StepInterests } from './StepInterests';
 import { StepCareerGoal } from './StepCareerGoal';
 import { StepResume } from './StepResume';
+import { updateProfile } from '../../services/api/profileApi';
 import type { UserSkill } from '../../types';
 
 export interface OnboardingData {
@@ -30,11 +32,36 @@ export function Onboarding() {
     skills: [], interests: [], careerGoal: '',
   });
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   const update = (updates: Partial<OnboardingData>) => setData((d) => ({ ...d, ...updates }));
 
   const next = () => setStep((s) => Math.min(s + 1, stepLabels.length - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+
+  const experienceLevels = ['Student', 'Fresher', '1-3 years', '3-5 years', '5+ years'] as const;
+
+  // Persists everything collected in the wizard except `skills` — the
+  // backend explicitly rejects writing skills through this endpoint because
+  // that field is owned by the (not-yet-built) Resume Module. Best-effort:
+  // a save failure shouldn't trap the user mid-onboarding.
+  const finishOnboarding = async () => {
+    try {
+      await updateProfile({
+        name: data.name || undefined,
+        location: data.location || undefined,
+        education: data.education || undefined,
+        graduationYear: data.graduationYear ? Number(data.graduationYear) : undefined,
+        experienceLevel: experienceLevels.includes(data.experienceLevel as (typeof experienceLevels)[number])
+          ? (data.experienceLevel as (typeof experienceLevels)[number])
+          : undefined,
+        targetCareer: data.careerGoal || undefined,
+      });
+    } catch {
+      showToast('Some profile details could not be saved — you can edit them later.', 'error');
+    }
+    navigate('/dashboard');
+  };
 
   return (
     <div className="min-h-screen bg-canvas-light dark:bg-canvas-dark">
@@ -85,7 +112,7 @@ export function Onboarding() {
             {step === 1 && <StepSkills data={data} update={update} />}
             {step === 2 && <StepInterests data={data} update={update} />}
             {step === 3 && <StepCareerGoal data={data} update={update} />}
-            {step === 4 && <StepResume onDone={() => navigate('/dashboard')} />}
+            {step === 4 && <StepResume onDone={finishOnboarding} />}
           </motion.div>
         </AnimatePresence>
 

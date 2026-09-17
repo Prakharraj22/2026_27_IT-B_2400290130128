@@ -49,9 +49,11 @@ function persistSavedIds(ids: Set<string>): void {
 }
 
 function formatSalary(min?: number, max?: number): string {
-  if (!min && !max) return 'Not disclosed';
+  // `== null` (not falsy checks) so a legitimate salary of 0 isn't treated
+  // the same as "not disclosed".
+  if (min == null && max == null) return 'Not disclosed';
   const fmt = (n: number) => `$${Math.round(n / 1000)}k`;
-  if (min && max) return `${fmt(min)} - ${fmt(max)}`;
+  if (min != null && max != null) return `${fmt(min)} - ${fmt(max)}`;
   return fmt((min ?? max)!);
 }
 
@@ -95,6 +97,17 @@ function toJob(raw: BackendJob, match: MatchInfo | undefined, savedIds: Set<stri
 // for bookmarking) can return the full updated list without refetching.
 let lastFetched: Job[] = [];
 
+// Set alongside `lastFetched` when the backend returns zero matches because
+// the user has no profile embedding yet (day-one state for every signup).
+// Exposed separately since `getRecommendedJobs` must keep returning `Job[]`
+// for existing callers — read via `getRecommendedJobsHint()` to show the
+// caller *why* the list is empty instead of generic "no results" copy.
+let lastHint: string | null = null;
+
+export function getRecommendedJobsHint(): string | null {
+  return lastHint;
+}
+
 // GET /v1/matches — personalized, ranked recommendations.
 // Until a profile embedding exists (set by the AI Worker, out of scope here),
 // the backend returns an empty list with a `hint` explaining why.
@@ -102,6 +115,7 @@ export async function getRecommendedJobs(): Promise<Job[]> {
   const res = await apiRequest<MatchesResponse>('/matches?limit=50');
   const savedIds = getSavedIds();
   lastFetched = res.data.map((m) => toJob(m.job, m, savedIds));
+  lastHint = res.hint ?? null;
   return lastFetched;
 }
 
@@ -123,7 +137,17 @@ export async function toggleSaveJob(id: string): Promise<Job[]> {
   else savedIds.add(id);
   persistSavedIds(savedIds);
 
-  lastFetched = lastFetched.map((j) => (j.id === id ? { ...j, saved: savedIds.has(id) } : j));
+  if (lastFetched.some((j) => j.id === id)) {
+    lastFetched = lastFetched.map((j) => (j.id === id ? { ...j, saved: savedIds.has(id) } : j));
+  } else {
+    // The job wasn't in the last fetched list — e.g. reached via a direct
+    // link, a page refresh, or because getRecommendedJobs() returned []
+    // (no profile embedding yet). Fetch it so callers that expect the
+    // toggled job to be present in the returned list (JobDetails.tsx) don't
+    // wrongly conclude the job doesn't exist.
+    const fetched = await getJobDetails(id);
+    if (fetched) lastFetched = [...lastFetched, { ...fetched, saved: savedIds.has(id) }];
+  }
   return lastFetched;
 }
 

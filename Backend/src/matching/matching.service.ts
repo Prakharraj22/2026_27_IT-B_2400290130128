@@ -41,7 +41,12 @@ export class MatchingService {
       };
     }
 
-    const cached = await this.matchCacheRepository.getCachedMatches(userId);
+    // The cache key is per-user only, not per-filter-combination, so it may
+    // only ever be trusted for the default (unfiltered) view. Serving a
+    // cached unfiltered ranking for a filtered request (or vice versa)
+    // would silently return results that don't match the requested filters.
+    const hasFilters = Object.values(filters).some((v) => v !== undefined);
+    const cached = hasFilters ? null : await this.matchCacheRepository.getCachedMatches(userId);
     let allMatches: Array<{ jobId: string; score: number }>;
 
     if (cached && cached.length > 0) {
@@ -49,7 +54,9 @@ export class MatchingService {
       allMatches = cached;
     } else {
       allMatches = await this.computeMatches(userId, profileEmbedding, filters);
-      await this.matchCacheRepository.cacheMatches(userId, allMatches);
+      if (!hasFilters) {
+        await this.matchCacheRepository.cacheMatches(userId, allMatches);
+      }
     }
 
     const skip = (page - 1) * limit;
@@ -106,6 +113,12 @@ export class MatchingService {
 
     const cached = await this.matchCacheRepository.getDbMatches(userId);
     const cachedEntry = cached.find((m) => m.jobId === jobId);
+    // If this job was never ranked for this user (e.g. called directly
+    // without going through /matches first), there's no real similarity
+    // score to report. Rather than silently presenting a made-up 0.7
+    // baseline as if it were computed, this is flagged via `scoreSource`
+    // so callers can distinguish a real ranking from an estimate.
+    const scoreSource: 'ranked' | 'estimated' = cachedEntry ? 'ranked' : 'estimated';
     const finalScore = cachedEntry?.score ?? (0.7 * 0.8 + skillOverlapScore);
     const similarityScore = Math.round(Math.max(0, (finalScore - skillOverlapScore) / 0.8) * 1000) / 1000;
 
@@ -119,6 +132,7 @@ export class MatchingService {
       similarityScore,
       skillOverlapScore,
       finalScore: Math.round(finalScore * 1000) / 1000,
+      scoreSource,
       matchingSkills: matchingSkills.map(
         (s) => (job.skillsRequired as string[]).find((js) => js.toLowerCase() === s) || s,
       ),

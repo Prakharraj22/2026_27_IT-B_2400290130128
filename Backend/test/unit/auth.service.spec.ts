@@ -150,11 +150,50 @@ describe('AuthService (Unit Tests)', () => {
         isActive: true,
       } as any);
 
+      // rotateRefreshToken returns the newly-created token row when it wins
+      // the conditional-update race; null would mean a concurrent request
+      // rotated this token first (see the 'concurrent rotation race' test).
+      repository.rotateRefreshToken.mockResolvedValue({
+        id: 'new-token-id',
+        userId: 'uuid-1',
+        tokenHash: 'new-hash',
+        familyId: 'fam-1',
+        expiresAt: new Date(Date.now() + 100000),
+        revoked: false,
+        createdAt: new Date(),
+      });
+
       const result = await service.refresh(rawToken);
 
       expect(result.accessToken).toBe('mock_jwt_access_token');
+      expect(result.refreshToken).toBeDefined();
       expect(result.expiresIn).toBe(900);
       expect(repository.rotateRefreshToken).toHaveBeenCalledTimes(1);
+    });
+
+    it('should revoke entire family when concurrent refresh already rotated this token', async () => {
+      const rawToken = 'sample_raw_refresh_token';
+      const tokenHash = hashToken(rawToken);
+
+      repository.findRefreshToken.mockResolvedValue({
+        id: 'token-id',
+        userId: 'uuid-1',
+        tokenHash,
+        familyId: 'fam-1',
+        expiresAt: new Date(Date.now() + 100000),
+        revoked: false,
+        createdAt: new Date(),
+      });
+      repository.findUserById.mockResolvedValue({
+        id: 'uuid-1',
+        role: 'user',
+        isActive: true,
+      } as any);
+      // Simulates losing the conditional-update race to a concurrent refresh.
+      repository.rotateRefreshToken.mockResolvedValue(null);
+
+      await expect(service.refresh(rawToken)).rejects.toThrow(UnauthorizedException);
+      expect(repository.revokeTokenFamily).toHaveBeenCalledWith('fam-1');
     });
 
     it('should revoke entire token family on token reuse detection', async () => {

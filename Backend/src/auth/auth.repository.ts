@@ -64,17 +64,25 @@ export class AuthRepository {
 
   /**
    * Atomic rotation: revoke old token and insert new one in a single transaction.
-   * Prevents race conditions where two concurrent refresh requests both succeed.
+   * The revoke is conditioned on `revoked: false` and its affected-row count is
+   * checked — this is what actually prevents two concurrent refresh requests
+   * (e.g. a legitimate client racing an attacker replaying a stolen token) from
+   * both successfully rotating the same parent token. An unconditional update
+   * would let both callers "win", silently minting two live children from one
+   * token with no reuse alarm raised. Returns null when this call lost the race.
    */
   async rotateRefreshToken(
     oldTokenHash: string,
     newData: { userId: string; tokenHash: string; familyId: string; expiresAt: Date },
-  ): Promise<RefreshToken> {
+  ): Promise<RefreshToken | null> {
     return this.prisma.$transaction(async (tx) => {
-      await tx.refreshToken.update({
-        where: { tokenHash: oldTokenHash },
+      const revokedResult = await tx.refreshToken.updateMany({
+        where: { tokenHash: oldTokenHash, revoked: false },
         data: { revoked: true },
       });
+      if (revokedResult.count === 0) {
+        return null;
+      }
       return tx.refreshToken.create({ data: newData });
     });
   }

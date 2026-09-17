@@ -92,7 +92,9 @@ export class AuthService {
     return this.issueTokenPair(user.id, user.role);
   }
 
-  async refresh(rawRefreshToken: string): Promise<{ accessToken: string; expiresIn: number }> {
+  async refresh(
+    rawRefreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string; expiresIn: number }> {
     const tokenHash = hashToken(rawRefreshToken);
     const stored = await this.authRepository.findRefreshToken(tokenHash);
 
@@ -138,15 +140,29 @@ export class AuthService {
       this.configService.get<string>('jwt.refreshExpiresIn') ?? '7d',
     );
 
-    await this.authRepository.rotateRefreshToken(tokenHash, {
+    const rotated = await this.authRepository.rotateRefreshToken(tokenHash, {
       userId: stored.userId,
       tokenHash: newTokenHash,
       familyId: stored.familyId,
       expiresAt,
     });
 
+    if (!rotated) {
+      // Another concurrent request already rotated this exact token first
+      // (revoke-then-insert lost the race) — treat it the same as reuse of
+      // an already-revoked token: kill the whole family, don't just fail.
+      this.logger.warn(
+        `Concurrent refresh race detected for family ${stored.familyId} — revoking all sessions`,
+      );
+      await this.authRepository.revokeTokenFamily(stored.familyId);
+      throw new UnauthorizedException({
+        code: 'REFRESH_TOKEN_REUSED',
+        message: 'Invalid or expired refresh token',
+      });
+    }
+
     const accessToken = this.signAccessToken(user.id, user.role);
-    return { accessToken, expiresIn: 900 };
+    return { accessToken, refreshToken: newRawToken, expiresIn: 900 };
   }
 
   async logout(userId: string, rawRefreshToken: string): Promise<void> {

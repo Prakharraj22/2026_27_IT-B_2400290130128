@@ -35,6 +35,19 @@ function experienceLevelFromYears(years?: number): User['experienceLevel'] {
   return '5+ years';
 }
 
+// Inverse of experienceLevelFromYears, for writing the onboarding/profile
+// form's categorical selection back to the backend's numeric yearsExperience.
+// Picks the midpoint of each bucket; 'Student' has no numeric equivalent.
+function yearsFromExperienceLevel(level?: User['experienceLevel']): number | undefined {
+  switch (level) {
+    case 'Fresher': return 0;
+    case '1-3 years': return 2;
+    case '3-5 years': return 4;
+    case '5+ years': return 6;
+    default: return undefined;
+  }
+}
+
 // The backend's Profile schema only stores { fullName, headline, location,
 // yearsExperience, skills, preferences }. Fields the UI wants but the backend
 // doesn't model yet (education, graduationYear, targetCareer) are kept inside
@@ -75,6 +88,10 @@ export async function updateProfile(updates: Partial<User>): Promise<User> {
   const body: Record<string, unknown> = { preferences: nextPreferences };
   if (updates.name !== undefined) body.fullName = updates.name;
   if (updates.location !== undefined) body.location = updates.location;
+  if (updates.experienceLevel !== undefined) {
+    const years = yearsFromExperienceLevel(updates.experienceLevel);
+    if (years !== undefined) body.yearsExperience = years;
+  }
 
   const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body });
   return toUser(updated);

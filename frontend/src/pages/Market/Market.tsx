@@ -44,7 +44,7 @@ export function Market() {
                   <div className="h-2 flex-1 overflow-hidden rounded-full bg-canvas-light dark:bg-white/5">
                     <div className="h-full rounded-full bg-primary-500" style={{ width: `${(s.demandChange / maxDemand) * 100}%` }} />
                   </div>
-                  <span className="w-14 shrink-0 text-right text-xs font-medium tabular text-success-600 dark:text-success-500">+{s.demandChange}%</span>
+                  <span className="w-20 shrink-0 text-right text-xs font-medium tabular text-success-600 dark:text-success-500">{s.demandChange} postings</span>
                 </div>
               ))}
             </div>

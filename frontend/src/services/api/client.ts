@@ -73,7 +73,11 @@ async function refreshAccessToken(): Promise<string | null> {
       .then(async (res) => {
         if (!res.ok) return null;
         const body = await res.json();
-        setAccessToken(body.accessToken);
+        // The backend rotates the refresh token on every use (single-use,
+        // reuse-detected) and returns the new one — it must be persisted
+        // here, or the NEXT refresh attempt will present an already-revoked
+        // token and the backend will kill the whole session as "reused".
+        setTokens(body.accessToken, body.refreshToken);
         return body.accessToken as string;
       })
       .catch(() => null)

@@ -6,21 +6,31 @@ import { JobPostingRaw } from '@prisma/client';
 export class RawPostingsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // Atomic idempotent insert: the DB's unique(source, sourceId) constraint is
+  // the source of truth, not a check-then-insert (which has a race window
+  // under concurrent ingestion runs — two calls can both see "not existing"
+  // and both attempt to create, and the loser used to surface as a hard
+  // error instead of being treated as an ordinary duplicate).
   async upsertRaw(data: { source: string; sourceId: string; rawPayload: object }): Promise<{ isNew: boolean; record: JobPostingRaw }> {
-    const existing = await this.prisma.jobPostingRaw.findUnique({
-      where: { source_sourceId: { source: data.source, sourceId: data.sourceId } },
-    });
-    if (existing) return { isNew: false, record: existing };
-
-    const record = await this.prisma.jobPostingRaw.create({
-      data: {
-        source: data.source,
-        sourceId: data.sourceId,
-        rawPayload: data.rawPayload,
-        processed: false,
-      },
-    });
-    return { isNew: true, record };
+    try {
+      const record = await this.prisma.jobPostingRaw.create({
+        data: {
+          source: data.source,
+          sourceId: data.sourceId,
+          rawPayload: data.rawPayload,
+          processed: false,
+        },
+      });
+      return { isNew: true, record };
+    } catch (err: any) {
+      if (err?.code === 'P2002') {
+        const existing = await this.prisma.jobPostingRaw.findUniqueOrThrow({
+          where: { source_sourceId: { source: data.source, sourceId: data.sourceId } },
+        });
+        return { isNew: false, record: existing };
+      }
+      throw err;
+    }
   }
 
   async markProcessed(id: string): Promise<void> {
