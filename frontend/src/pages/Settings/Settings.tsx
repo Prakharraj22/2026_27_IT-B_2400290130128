@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Sun, Moon, Monitor, User, Bell, Shield, LogOut } from 'lucide-react';
 import { Topbar } from '../../components/layout/Topbar';
 import { Card, Input, Button } from '../../components/ui';
@@ -6,6 +6,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ui/Toast';
 import { useNavigate } from 'react-router-dom';
+import { updateProfile } from '../../services/api/profileApi';
 import { cn } from '../../utils/cn';
 
 function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -24,15 +25,37 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
-  const { user, logout } = useApp();
+  const { user, login, logout } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
 
   const [notifPrefs, setNotifPrefs] = useState({ jobAlerts: true, careerInsights: true, roadmapReminders: false });
+  const [fullName, setFullName] = useState(user?.name ?? '');
+  const [savingAccount, setSavingAccount] = useState(false);
+
+  // `user` loads asynchronously after auth, so this component's first
+  // render(s) can happen before it's available — sync local form state once
+  // it (or a later profile update) actually arrives.
+  useEffect(() => {
+    setFullName(user?.name ?? '');
+  }, [user?.name]);
 
   const handleLogout = () => {
     logout();
     navigate('/');
+  };
+
+  const handleSaveAccount = async () => {
+    setSavingAccount(true);
+    try {
+      const updated = await updateProfile({ name: fullName });
+      login(updated);
+      showToast('Account details updated.', 'success');
+    } catch {
+      showToast('Could not save your changes. Please try again.', 'error');
+    } finally {
+      setSavingAccount(false);
+    }
   };
 
   if (!user) return null;
@@ -46,10 +69,10 @@ export function Settings() {
         <Card className="p-6">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold"><User className="h-4 w-4" /> Account</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Input label="Full Name" defaultValue={user.name} />
-            <Input label="Email" defaultValue={user.email} type="email" />
+            <Input label="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <Input label="Email" defaultValue={user.email} type="email" disabled hint="Email changes aren't supported yet." />
           </div>
-          <Button size="sm" className="mt-4" onClick={() => showToast('Account details updated.', 'success')}>Save Changes</Button>
+          <Button size="sm" className="mt-4" loading={savingAccount} onClick={handleSaveAccount}>Save Changes</Button>
         </Card>
 
         <Card className="p-6">

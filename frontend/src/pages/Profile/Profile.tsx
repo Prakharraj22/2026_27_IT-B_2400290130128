@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2, Pencil, MapPin, GraduationCap, Briefcase as BriefcaseIcon, Award, Target, ExternalLink } from 'lucide-react';
 import { Topbar } from '../../components/layout/Topbar';
-import { Card, Badge, Button, Avatar, Modal, Input } from '../../components/ui';
+import { Card, Badge, Button, Avatar, Modal, Input, Select } from '../../components/ui';
 import { SkillCard } from '../../components/skills/SkillCard';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ui/Toast';
-import { getSkills, getProjects, getExperience, getCertifications, getInterests } from '../../services/api/profileApi';
-import type { UserSkill, Project, Experience, Certification } from '../../types';
+import { getSkills, getProjects, getExperience, getCertifications, getInterests, updateProfile } from '../../services/api/profileApi';
+import type { UserSkill, Project, Experience, Certification, User } from '../../types';
+
+const EXPERIENCE_LEVELS: User['experienceLevel'][] = ['Student', 'Fresher', '1-3 years', '3-5 years', '5+ years'];
 
 export function Profile() {
-  const { user } = useApp();
+  const { user, login } = useApp();
   const { showToast } = useToast();
   const [skills, setSkills] = useState<UserSkill[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -18,6 +20,9 @@ export function Profile() {
   const [interests, setInterests] = useState<string[]>([]);
   const [addSkillOpen, setAddSkillOpen] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<Pick<User, 'name' | 'location' | 'education' | 'graduationYear' | 'experienceLevel' | 'targetCareer'> | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     getSkills().then(setSkills);
@@ -29,7 +34,7 @@ export function Profile() {
 
   const removeSkill = (name: string) => {
     setSkills((s) => s.filter((sk) => sk.name !== name));
-    showToast(`${name} removed from your profile.`, 'info');
+    showToast(`${name} removed for this session.`, 'info');
   };
 
   const addSkill = () => {
@@ -37,7 +42,41 @@ export function Profile() {
     setSkills((s) => [...s, { name: newSkillName.trim(), proficiency: 'Beginner' }]);
     setNewSkillName('');
     setAddSkillOpen(false);
-    showToast('Skill added.', 'success');
+    // Skills are owned by the Resume Module (the backend rejects writing
+    // them through the profile update endpoint), so this is session-only —
+    // it won't survive a refresh yet. Said plainly so it isn't mistaken for
+    // a real save.
+    showToast('Skill added for this session — persistent skill sync is coming soon.', 'info');
+  };
+
+  const notYetAvailable = (feature: string) => showToast(`${feature} isn't available yet — coming soon.`, 'info');
+
+  const openEdit = () => {
+    if (!user) return;
+    setEditForm({
+      name: user.name,
+      location: user.location,
+      education: user.education,
+      graduationYear: user.graduationYear,
+      experienceLevel: user.experienceLevel,
+      targetCareer: user.targetCareer,
+    });
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!editForm) return;
+    setSavingEdit(true);
+    try {
+      const updated = await updateProfile(editForm);
+      login(updated);
+      setEditOpen(false);
+      showToast('Profile updated.', 'success');
+    } catch {
+      showToast('Could not save your changes. Please try again.', 'error');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   if (!user) return null;
@@ -60,7 +99,7 @@ export function Profile() {
               <span className="flex items-center gap-1"><BriefcaseIcon className="h-3.5 w-3.5" /> {user.experienceLevel}</span>
             </div>
           </div>
-          <Button variant="outline" size="sm" icon={<Pencil className="h-3.5 w-3.5" />}>Edit</Button>
+          <Button variant="outline" size="sm" icon={<Pencil className="h-3.5 w-3.5" />} onClick={openEdit}>Edit</Button>
         </div>
       </Card>
 
@@ -94,7 +133,7 @@ export function Profile() {
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Projects</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />}>Add Project</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding projects')}>Add Project</Button>
         </div>
         <div className="space-y-4">
           {projects.map((p) => (
@@ -111,7 +150,11 @@ export function Profile() {
                   </p>
                   <p className="mt-1 text-sm text-muted-light dark:text-muted-dark">{p.description}</p>
                 </div>
-                <button className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10" aria-label={`Delete ${p.title}`}>
+                <button
+                  onClick={() => notYetAvailable('Deleting projects')}
+                  className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10"
+                  aria-label={`Delete ${p.title}`}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
@@ -127,7 +170,7 @@ export function Profile() {
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Experience</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />}>Add Experience</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding experience')}>Add Experience</Button>
         </div>
         {experience.length === 0 ? (
           <p className="text-sm text-muted-light dark:text-muted-dark">No experience added yet.</p>
@@ -148,7 +191,7 @@ export function Profile() {
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Certifications</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />}>Add Certification</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding certifications')}>Add Certification</Button>
         </div>
         <div className="space-y-2">
           {certifications.map((c) => (
@@ -176,6 +219,33 @@ export function Profile() {
           <Input label="Skill name" placeholder="e.g. Kubernetes" value={newSkillName} onChange={(e) => setNewSkillName(e.target.value)} />
           <Button fullWidth onClick={addSkill}>Add Skill</Button>
         </div>
+      </Modal>
+
+      <Modal open={editOpen} onClose={() => setEditOpen(false)} title="Edit profile">
+        {editForm && (
+          <div className="space-y-4">
+            <Input label="Full Name" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} />
+            <Input label="Location" value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} />
+            <Input label="Education" value={editForm.education} onChange={(e) => setEditForm({ ...editForm, education: e.target.value })} />
+            <div className="grid grid-cols-2 gap-4">
+              <Input
+                label="Graduation Year"
+                type="number"
+                value={editForm.graduationYear}
+                onChange={(e) => setEditForm({ ...editForm, graduationYear: Number(e.target.value) })}
+              />
+              <Select
+                label="Experience Level"
+                value={editForm.experienceLevel}
+                onChange={(e) => setEditForm({ ...editForm, experienceLevel: e.target.value as User['experienceLevel'] })}
+              >
+                {EXPERIENCE_LEVELS.map((lvl) => <option key={lvl}>{lvl}</option>)}
+              </Select>
+            </div>
+            <Input label="Career Goal" value={editForm.targetCareer} onChange={(e) => setEditForm({ ...editForm, targetCareer: e.target.value })} />
+            <Button fullWidth loading={savingEdit} onClick={saveEdit}>Save Changes</Button>
+          </div>
+        )}
       </Modal>
     </div>
   );

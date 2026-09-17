@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Sparkles, X, Send } from 'lucide-react';
 import { cn } from '../../utils/cn';
@@ -29,20 +29,27 @@ const mockResponses: Record<string, string> = {
     'Software Engineer I at Orbital Systems (91% match) and Full-Stack Developer Intern at Loomstack (88% match) are your closest fits right now.',
 };
 
+let nextMessageId = 1;
+
 export function AIAssistant() {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { id: 0, role: 'assistant', text: 'Hi! I\u2019m your CareerAI Assistant. Ask me anything about your skills, roadmap or job matches.' },
   ]);
   const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  }, [messages]);
 
   const send = (text: string) => {
     if (!text.trim()) return;
-    const userMsg: Message = { id: Date.now(), role: 'user', text };
+    const userMsg: Message = { id: nextMessageId++, role: 'user', text };
     const reply =
       mockResponses[text] ??
       'That\u2019s a great question \u2014 once connected to the live model, I\u2019ll pull directly from your profile to answer that in detail.';
-    setMessages((m) => [...m, userMsg, { id: Date.now() + 1, role: 'assistant', text: reply }]);
+    setMessages((m) => [...m, userMsg, { id: nextMessageId++, role: 'assistant', text: reply }]);
     setInput('');
   };
 
@@ -87,6 +94,7 @@ export function AIAssistant() {
                   {m.text}
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
 
             {messages.length <= 1 && (

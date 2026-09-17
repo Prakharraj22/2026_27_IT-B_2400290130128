@@ -29,6 +29,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               'w-full rounded-xl border bg-surface-light dark:bg-surface-dark px-3.5 py-2.5 text-sm text-ink-light dark:text-ink-dark placeholder:text-muted-light dark:placeholder:text-muted-dark transition-colors',
               'focus-visible:ring-2 focus-visible:ring-primary-500',
+              'disabled:cursor-not-allowed disabled:opacity-50',
               error ? 'border-danger-500' : 'border-border-light dark:border-border-dark',
               isPassword && 'pr-10',
               className
