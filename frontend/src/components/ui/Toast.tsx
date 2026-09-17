@@ -18,11 +18,17 @@ const icons: Record<ToastType, ReactNode> = {
   info: <Info className="h-4 w-4 text-primary-500" />,
 };
 
+let nextToastId = 0;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastMsg[]>([]);
 
   const showToast = useCallback((message: string, type: ToastType = 'success') => {
-    const id = Date.now();
+    // An incrementing counter (not Date.now()) so two toasts fired in the
+    // same millisecond never collide on id — a collision would make React
+    // treat them as the same list item and the dismiss timeout for one
+    // would incorrectly remove both.
+    const id = nextToastId++;
     setToasts((t) => [...t, { id, type, message }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3200);
   }, []);
@@ -30,7 +36,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="pointer-events-none fixed bottom-5 right-5 z-[60] flex flex-col gap-2">
+      <div
+        className="pointer-events-none fixed bottom-5 right-5 z-[60] flex flex-col gap-2"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div

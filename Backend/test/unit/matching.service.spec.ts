@@ -82,6 +82,41 @@ describe('MatchingService (Unit Tests)', () => {
       expect(result.data).toEqual([]);
       expect(result['hint']).toBeDefined();
     });
+
+    it('should bypass the cache entirely (read and write) when any filter is present', async () => {
+      // Regression test: the cache key is per-user only, with no filter
+      // fingerprint, so serving/writing it for a filtered request would
+      // silently return results computed under different filters.
+      profilesService.getProfileEmbedding.mockResolvedValue([0.1, 0.2, 0.3]);
+      profilesService.getMyProfile.mockResolvedValue({ skills: [] } as any);
+      jobsRepo.findSimilarJobs.mockResolvedValue([{ id: 'job-1', score: 0.5 }]);
+      jobsRepo.findById.mockResolvedValue({
+        id: 'job-1',
+        title: 'Remote Job',
+        skillsRequired: [],
+      } as any);
+
+      await service.getMatches('user-1', { remote: true }, 1, 10);
+
+      expect(cacheRepo.getCachedMatches).not.toHaveBeenCalled();
+      expect(cacheRepo.cacheMatches).not.toHaveBeenCalled();
+    });
+
+    it('should use the cache when no filters are present', async () => {
+      profilesService.getProfileEmbedding.mockResolvedValue([0.1, 0.2, 0.3]);
+      cacheRepo.getCachedMatches.mockResolvedValue([{ jobId: 'job-1', score: 0.9 }]);
+      profilesService.getMyProfile.mockResolvedValue({ skills: [] } as any);
+      jobsRepo.findById.mockResolvedValue({
+        id: 'job-1',
+        title: 'Cached Job',
+        skillsRequired: [],
+      } as any);
+
+      await service.getMatches('user-1', {}, 1, 10);
+
+      expect(cacheRepo.getCachedMatches).toHaveBeenCalledWith('user-1');
+      expect(jobsRepo.findSimilarJobs).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleProfileUpdated', () => {
@@ -118,6 +153,23 @@ describe('MatchingService (Unit Tests)', () => {
       expect(explanation.matchingSkills).toEqual(['Python', 'SQL']);
       expect(explanation.missingSkills).toEqual(['Tableau']);
       expect(explanation.explanation).toContain('match. You possess 2 of 3 key skills');
+      expect(explanation.scoreSource).toBe('ranked');
+    });
+
+    it('should flag the score as estimated when the job was never actually ranked for this user', async () => {
+      // Regression test: previously this fell back to a hardcoded 0.7
+      // "similarity" with no way for callers to tell it wasn't a real score.
+      profilesService.getMyProfile.mockResolvedValue({ skills: ['Python'] } as any);
+      jobsRepo.findById.mockResolvedValue({
+        id: 'job-2',
+        title: 'Unranked Job',
+        skillsRequired: ['Python'],
+      } as any);
+      cacheRepo.getDbMatches.mockResolvedValue([]);
+
+      const explanation = await service.getMatchExplanation('user-1', 'job-2');
+
+      expect(explanation.scoreSource).toBe('estimated');
     });
   });
 });
