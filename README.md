@@ -1,73 +1,63 @@
-# CareerAI — AI Career Intelligence Platform (Frontend)
+# AI Career Intelligence Platform
 
-An AI-powered career intelligence platform frontend for students and job seekers. This is a **frontend-only** build — no backend, database, or AI models — designed to be wired up to a REST API later.
+An AI-powered **Career Copilot** that helps users analyze their skills, projects, resume, learning progress, and target career role to build a personalized and evidence-based career roadmap.
 
-## 1. Project Structure
+Unlike a basic job recommendation system, this platform explains **why** a recommendation is made, identifies the evidence behind it, and converts recommendations into measurable actions.
 
-```
-src/
-├── assets/
-├── components/
-│   ├── ui/            # Reusable design-system primitives (Button, Card, Modal, Tabs, Toast, ...)
-│   ├── layout/         # Sidebar, MobileNav, Topbar, DashboardLayout
-│   ├── dashboard/       # AIInsight, RecentActivityList
-│   ├── resume/          # ResumeUploader
-│   ├── careers/         # CareerCard
-│   ├── skills/           # SkillCard, SkillGapCard
-│   ├── roadmap/          # RoadmapStepItem
-│   ├── jobs/             # JobCard
-│   ├── notifications/    # NotificationItemRow
-│   ├── ai/                # Floating AIAssistant widget
-│   └── landing/            # LandingHeader
-├── pages/                # One folder per route (Landing, Login, Signup, Onboarding, Dashboard, ...)
-├── services/api/          # Mock API layer — one file per domain, structured for REST swap
-├── data/                  # Mock data (users, careers, jobs, roadmap, skills, notifications)
-├── context/                # ThemeContext (light/dark/system), AppContext (auth + notifications)
-├── hooks/
-├── utils/                  # cn() class helper
-├── types/                  # Shared TypeScript interfaces
-├── routes/                 # ProtectedRoute guard
-├── App.tsx
-└── main.tsx
-```
+## Key Features
 
-## 2. Technologies Used
+- Profile and Skill Graph
+- Resume Intelligence and skill extraction
+- Career Role Matching with fit scores
+- Skill Gap Analysis
+- AI-generated learning roadmaps
+- Personalized Project Recommendations
+- Resume and Portfolio Feedback
+- Job Description Intelligence
+- Progress Tracking Dashboard
+- AI Career Copilot Chat
+- Evidence-based recommendations using RAG
 
-- React 19 + Vite + TypeScript
-- Tailwind CSS 3 (custom design tokens — indigo/violet primary, semantic success/warning/danger/AI colors, Sora + Inter typography)
-- React Router v7
-- Framer Motion (page/modal/mobile-nav transitions)
-- Lucide React (icons)
+## Tech Stack
 
-## 3. Pages Implemented
+- **Frontend:** React / Next.js, Tailwind CSS
+- **Backend:** FastAPI or Node.js / Express
+- **Database:** PostgreSQL
+- **AI:** LLM API, Embeddings, RAG
+- **Vector Database:** Vector search for semantic retrieval
+- **Document Processing:** PDF/DOCX parsing
+- **Authentication:** JWT / OAuth
+- **Deployment:** Docker and AWS
 
-Landing, Login, Signup, Forgot Password, Onboarding (5-step: Personal Info → Skills → Interests → Career Goal → Resume Upload), Dashboard, My Profile, Resume Intelligence, Career Explorer + Career Details, Skill Gap, Roadmap, Jobs + Job Details, Market Intelligence, Notifications, Settings.
+## Team of 4
 
-All routes from the spec are live and navigable end-to-end using mock data.
+| Member | Responsibility |
+|---|---|
+| **Member 1** | AI/ML and Recommendation Engine |
+| **Member 2** | Backend, Database and Authentication |
+| **Member 3** | Frontend, Dashboard and UX |
+| **Member 4** | Data Pipeline, RAG, DevOps and QA |
 
-## 4. Components Created
+## Project Flow
 
-~20 reusable UI primitives (`Button`, `Input`, `Select`, `Modal`, `Card`, `Badge`, `ProgressBar`, `CircularProgress`, `Avatar`, `Dropdown`, `Tabs`, `Toast`, `Tooltip`, `Skeleton`, `EmptyState`, `ErrorState`, `SearchBar`, `Filter`) plus layout components (`Sidebar`, `MobileNav`, `Topbar`, `DashboardLayout`) and feature components (`CareerCard`, `JobCard`, `SkillCard`, `SkillGapCard`, `RoadmapStepItem`, `NotificationItemRow`, `ResumeUploader`, `AIInsight`, floating `AIAssistant`).
+`User → Web App → API → Profile/Resume/Job Services → Recommendation Engine → LLM/RAG → PostgreSQL + Vector DB → Dashboard`
 
-## 5. Mock APIs Created
+## Core Goal
 
-`src/services/api/`: `authApi`, `profileApi`, `careerApi`, `roadmapApi`, `jobsApi`, `resumeApi`, `notificationApi`, `marketApi`. Every function is `async`, simulates network latency, and is commented with the future REST endpoint it maps to (e.g. `GET /v1/careers`, `POST /v1/resume/upload`).
+Help users move through a complete career journey:
 
-## 6. How to Run
+**Target Role → Skill Analysis → Skill Gaps → Learning Roadmap → Projects → Resume Evidence → Job Readiness**
 
-```bash
-npm install
-npm run dev       # start dev server
-npm run build      # production build (tsc -b && vite build) — verified passing
-npm run preview     # preview the production build
-```
+The main objective is to create a transparent AI system that does not simply give career advice, but provides **personalized, explainable, and actionable career guidance**.
 
-Log in / sign up with **any** email and password — authentication is mocked.
+## Future Scope
 
-## 7. What Needs to Be Connected to the Backend Later
+- Real-time job market analysis
+- Mock interview preparation
+- AI-based assessment generation
+- Adaptive roadmaps based on progress
+- Personalized internship and job recommendations
 
-- Replace the bodies of functions in `src/services/api/*.ts` with real `fetch`/`axios` calls to the documented `/v1/...` endpoints — the function signatures and return types are already the contract.
-- Real authentication (JWT/session) in `authApi.ts` and `AppContext.tsx`.
-- Real resume parsing behind `POST /v1/resume/upload` (currently returns canned mock analysis).
-- Real AI explanations/chat behind the `AIAssistant` widget and `AIInsight` cards (currently mock responses).
-- Persisting profile edits, saved jobs, roadmap completion, and notification read-state server-side (currently in-memory only).
+### Contributors
+
+This project is being developed collaboratively by a team of **4 members**.
