@@ -15,7 +15,11 @@ function getSystemTheme(): 'light' | 'dark' {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('careerai-theme') as Theme) || 'system');
+  // Defaults to light rather than following the OS preference — a
+  // professional, deliberately-designed light theme is the intended first
+  // impression; dark/system remain one click away in the theme switcher for
+  // anyone who prefers them, and that choice is remembered via localStorage.
+  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('careerai-theme') as Theme) || 'light');
   const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>(
     theme === 'system' ? getSystemTheme() : (theme as 'light' | 'dark')
   );

@@ -3,6 +3,7 @@ import { Sun, Moon, Monitor, User, Bell, Shield, LogOut } from 'lucide-react';
 import { Topbar } from '../../components/layout/Topbar';
 import { Card, Input, Button } from '../../components/ui';
 import { useTheme } from '../../context/ThemeContext';
+import { useColorTheme, COLOR_THEMES } from '../../context/ColorThemeContext';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ui/Toast';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +26,7 @@ function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: 
 
 export function Settings() {
   const { theme, setTheme } = useTheme();
+  const { colorTheme, setColorTheme } = useColorTheme();
   const { user, login, logout } = useApp();
   const { showToast } = useToast();
   const navigate = useNavigate();
@@ -95,6 +97,29 @@ export function Settings() {
               >
                 <opt.icon className="h-4.5 w-4.5" />
                 {opt.label}
+              </button>
+            ))}
+          </div>
+
+          <p className="mb-3 mt-6 text-xs font-medium uppercase tracking-wide text-muted-light dark:text-muted-dark">Color Theme</p>
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+            {COLOR_THEMES.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setColorTheme(t.id)}
+                aria-pressed={colorTheme === t.id}
+                className={cn(
+                  'flex flex-col items-center gap-2 rounded-xl border px-3 py-3 text-xs font-medium transition-colors',
+                  colorTheme === t.id
+                    ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-200'
+                    : 'border-border-light dark:border-border-dark text-ink-light dark:text-ink-dark hover:border-primary-300'
+                )}
+              >
+                <span
+                  className="h-6 w-6 rounded-full border-2 border-surface-light dark:border-surface-dark"
+                  style={{ backgroundColor: t.swatch, boxShadow: colorTheme === t.id ? `0 0 0 2px ${t.swatch}` : 'none' }}
+                />
+                {t.label}
               </button>
             ))}
           </div>

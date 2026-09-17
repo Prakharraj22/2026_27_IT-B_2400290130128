@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
+import { ColorThemeProvider } from './context/ColorThemeContext';
 import { AppProvider } from './context/AppContext';
 import { ToastProvider } from './components/ui/Toast';
 import { ProtectedRoute } from './routes/ProtectedRoute';
@@ -41,6 +42,7 @@ function RouteFallback() {
 function App() {
   return (
     <ThemeProvider>
+      <ColorThemeProvider>
       <ToastProvider>
         <AppProvider>
           <BrowserRouter>
@@ -69,6 +71,7 @@ function App() {
           </BrowserRouter>
         </AppProvider>
       </ToastProvider>
+      </ColorThemeProvider>
     </ThemeProvider>
   );
 }

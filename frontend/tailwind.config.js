@@ -32,28 +32,28 @@ export default {
           light: '#78716C',
           dark: '#A8A29E',
         },
-        // Terracotta: warm, human, growth/achievement-coded — deliberately
-        // not blue/indigo/violet/teal, which is what nearly every AI product
-        // defaults to.
+        // `primary` and `ai` are driven by CSS custom properties (defined
+        // per color-theme in index.css, switched via [data-color-theme] on
+        // <html> — see ColorThemeContext) rather than static hex values, so
+        // the whole app can switch between 5 predefined color themes at
+        // runtime without a rebuild. The "/<alpha-value>" suffix is
+        // Tailwind's documented pattern for CSS-variable colors that still
+        // support opacity modifiers (e.g. bg-primary-600/50).
         primary: {
-          50: '#FBF0EC',
-          100: '#F5DBCF',
-          200: '#E9B49B',
-          300: '#DC8C68',
-          400: '#CC6B41',
-          500: '#B8532A',
-          600: '#96421F',
-          700: '#78341A',
-          800: '#5E2A17',
-          900: '#4A2213',
+          50: 'rgb(var(--color-primary-50) / <alpha-value>)',
+          100: 'rgb(var(--color-primary-100) / <alpha-value>)',
+          200: 'rgb(var(--color-primary-200) / <alpha-value>)',
+          300: 'rgb(var(--color-primary-300) / <alpha-value>)',
+          400: 'rgb(var(--color-primary-400) / <alpha-value>)',
+          500: 'rgb(var(--color-primary-500) / <alpha-value>)',
+          600: 'rgb(var(--color-primary-600) / <alpha-value>)',
+          700: 'rgb(var(--color-primary-700) / <alpha-value>)',
+          800: 'rgb(var(--color-primary-800) / <alpha-value>)',
+          900: 'rgb(var(--color-primary-900) / <alpha-value>)',
         },
-        // A cool, deep teal as the AI-specific accent — a deliberate
-        // complementary contrast to the warm terracotta primary, used only
-        // for AI-badge/insight moments so it stays meaningful rather than
-        // just another brand color.
         ai: {
-          light: '#0E7C86',
-          dark: '#5EEAD4',
+          light: 'rgb(var(--color-ai-light) / <alpha-value>)',
+          dark: 'rgb(var(--color-ai-dark) / <alpha-value>)',
         },
         success: {
           50: '#E9F8F1',

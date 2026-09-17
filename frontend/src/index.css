@@ -5,6 +5,100 @@
 @tailwind utilities;
 
 @layer base {
+  /* Five predefined color themes, switched via [data-color-theme] on <html>
+     (see ColorThemeContext). Values are space-separated RGB (not hex) so
+     Tailwind's `rgb(var(...) / <alpha-value>)` pattern in tailwind.config.js
+     can still apply opacity modifiers. Only `primary`/`ai` vary by theme —
+     neutrals and semantic colors (success/warning/danger) stay constant so
+     meaning doesn't shift when someone picks a different look. */
+
+  :root,
+  [data-color-theme='terracotta'] {
+    /* Terracotta (default): warm, human, growth/achievement-coded —
+       deliberately not blue/indigo/violet/teal. */
+    --color-primary-50: 251 240 236;
+    --color-primary-100: 245 219 207;
+    --color-primary-200: 233 180 155;
+    --color-primary-300: 220 140 104;
+    --color-primary-400: 204 107 65;
+    --color-primary-500: 184 83 42;
+    --color-primary-600: 150 66 31;
+    --color-primary-700: 120 52 26;
+    --color-primary-800: 94 42 23;
+    --color-primary-900: 74 34 19;
+    --color-ai-light: 14 124 134;
+    --color-ai-dark: 94 234 212;
+  }
+
+  [data-color-theme='ocean'] {
+    /* Classic professional blue, for anyone who prefers it after all. */
+    --color-primary-50: 239 246 255;
+    --color-primary-100: 219 234 254;
+    --color-primary-200: 191 219 254;
+    --color-primary-300: 147 197 253;
+    --color-primary-400: 96 165 250;
+    --color-primary-500: 59 130 246;
+    --color-primary-600: 37 99 235;
+    --color-primary-700: 29 78 216;
+    --color-primary-800: 30 64 175;
+    --color-primary-900: 30 58 138;
+    --color-ai-light: 234 88 12;
+    --color-ai-dark: 251 146 60;
+  }
+
+  [data-color-theme='forest'] {
+    /* Deep, muted pine green — growth-coded without reading as a duplicate
+       of the semantic "success" green. */
+    --color-primary-50: 241 246 240;
+    --color-primary-100: 221 233 217;
+    --color-primary-200: 185 210 177;
+    --color-primary-300: 146 182 134;
+    --color-primary-400: 109 154 94;
+    --color-primary-500: 79 125 66;
+    --color-primary-600: 61 100 50;
+    --color-primary-700: 47 78 39;
+    --color-primary-800: 36 64 30;
+    --color-primary-900: 26 47 22;
+    --color-ai-light: 183 121 31;
+    --color-ai-dark: 246 196 83;
+  }
+
+  [data-color-theme='plum'] {
+    /* Sophisticated wine/burgundy-purple, distinct from the semantic danger
+       red by being deeper and more muted. */
+    --color-primary-50: 250 245 247;
+    --color-primary-100: 240 225 232;
+    --color-primary-200: 223 192 208;
+    --color-primary-300: 201 148 175;
+    --color-primary-400: 173 107 140;
+    --color-primary-500: 143 77 110;
+    --color-primary-600: 114 58 86;
+    --color-primary-700: 90 45 68;
+    --color-primary-800: 69 35 52;
+    --color-primary-900: 51 26 39;
+    --color-ai-light: 15 155 142;
+    --color-ai-dark: 94 234 212;
+  }
+
+  [data-color-theme='slate'] {
+    /* Minimal, monochrome corporate neutral for anyone who wants the least
+       "branded" option. */
+    --color-primary-50: 248 250 252;
+    --color-primary-100: 241 245 249;
+    --color-primary-200: 226 232 240;
+    --color-primary-300: 203 213 225;
+    --color-primary-400: 148 163 184;
+    --color-primary-500: 100 116 139;
+    --color-primary-600: 71 85 105;
+    --color-primary-700: 51 65 85;
+    --color-primary-800: 30 41 59;
+    --color-primary-900: 15 23 42;
+    --color-ai-light: 37 99 235;
+    --color-ai-dark: 96 165 250;
+  }
+}
+
+@layer base {
   * {
     @apply border-border-light dark:border-border-dark;
   }
