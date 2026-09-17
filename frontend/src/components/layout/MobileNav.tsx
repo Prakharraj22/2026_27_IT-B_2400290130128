@@ -3,10 +3,12 @@ import { NavLink } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   Menu, X, LayoutDashboard, User, FileText, Compass, Target, Map, Briefcase,
-  TrendingUp, Bell, Settings, Sparkles,
+  TrendingUp, Bell, Settings, Sparkles, Sun, Moon, Monitor,
 } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import { useApp } from '../../context/AppContext';
+import { useTheme } from '../../context/ThemeContext';
+import { useColorTheme, COLOR_THEMES } from '../../context/ColorThemeContext';
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -21,9 +23,17 @@ const navItems = [
   { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
+const themeOptions = [
+  { value: 'light' as const, label: 'Light', icon: Sun },
+  { value: 'dark' as const, label: 'Dark', icon: Moon },
+  { value: 'system' as const, label: 'System', icon: Monitor },
+];
+
 export function MobileNav() {
   const [open, setOpen] = useState(false);
   const { unreadCount } = useApp();
+  const { theme, setTheme } = useTheme();
+  const { colorTheme, setColorTheme } = useColorTheme();
 
   return (
     <>
@@ -92,6 +102,41 @@ export function MobileNav() {
                   </NavLink>
                 ))}
               </nav>
+
+              <div className="mt-5 border-t border-border-light dark:border-border-dark pt-4">
+                <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-light dark:text-muted-dark">Appearance</p>
+                <div className="mb-3 grid grid-cols-3 gap-2 px-3">
+                  {themeOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTheme(opt.value)}
+                      className={cn(
+                        'flex flex-col items-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium',
+                        theme === opt.value
+                          ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/40 dark:text-primary-200'
+                          : 'border-border-light dark:border-border-dark text-muted-light dark:text-muted-dark'
+                      )}
+                    >
+                      <opt.icon className="h-4 w-4" />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-muted-light dark:text-muted-dark">Color Theme</p>
+                <div className="flex flex-wrap gap-2 px-3">
+                  {COLOR_THEMES.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setColorTheme(t.id)}
+                      aria-label={t.label}
+                      aria-pressed={colorTheme === t.id}
+                      title={t.label}
+                      className="h-7 w-7 shrink-0 rounded-full border-2 border-surface-light dark:border-surface-dark"
+                      style={{ backgroundColor: t.swatch, boxShadow: colorTheme === t.id ? `0 0 0 2px ${t.swatch}` : 'none' }}
+                    />
+                  ))}
+                </div>
+              </div>
             </motion.div>
           </>
         )}
