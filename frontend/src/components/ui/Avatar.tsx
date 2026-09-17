@@ -4,7 +4,7 @@ interface AvatarProps {
   size?: number;
 }
 
-export function Avatar({ name, color = '#2563EB', size = 40 }: AvatarProps) {
+export function Avatar({ name, color = '#96421F', size = 40 }: AvatarProps) {
   const initials = name
     .split(' ')
     .map((n) => n[0])

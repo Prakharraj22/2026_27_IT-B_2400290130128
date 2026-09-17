@@ -9,51 +9,63 @@ export default {
         sans: ['Inter', 'sans-serif'],
       },
       colors: {
+        // Warm stone neutrals instead of cold blue-gray slate — reads less
+        // like a generic "AI dashboard" and more like a considered, human
+        // product.
         canvas: {
-          light: '#F8FAFC',
-          dark: '#0B1220',
+          light: '#FAFAF9',
+          dark: '#1C1917',
         },
         surface: {
           light: '#FFFFFF',
-          dark: '#111827',
+          dark: '#292524',
         },
         border: {
-          light: '#E2E8F0',
-          dark: '#1E293B',
+          light: '#E7E5E4',
+          dark: '#44403C',
         },
         ink: {
-          light: '#0F172A',
-          dark: '#F1F5F9',
+          light: '#1C1917',
+          dark: '#FAFAF9',
         },
         muted: {
-          light: '#64748B',
-          dark: '#94A3B8',
+          light: '#78716C',
+          dark: '#A8A29E',
         },
+        // Terracotta: warm, human, growth/achievement-coded — deliberately
+        // not blue/indigo/violet/teal, which is what nearly every AI product
+        // defaults to.
         primary: {
-          50: '#EFF6FF',
-          100: '#DBEAFE',
-          200: '#BFDBFE',
-          300: '#93C5FD',
-          400: '#60A5FA',
-          500: '#3B82F6',
-          600: '#2563EB',
-          700: '#1D4ED8',
-          800: '#1E40AF',
-          900: '#1E3A8A',
+          50: '#FBF0EC',
+          100: '#F5DBCF',
+          200: '#E9B49B',
+          300: '#DC8C68',
+          400: '#CC6B41',
+          500: '#B8532A',
+          600: '#96421F',
+          700: '#78341A',
+          800: '#5E2A17',
+          900: '#4A2213',
         },
+        // A cool, deep teal as the AI-specific accent — a deliberate
+        // complementary contrast to the warm terracotta primary, used only
+        // for AI-badge/insight moments so it stays meaningful rather than
+        // just another brand color.
         ai: {
-          light: '#0D9488',
-          dark: '#2DD4BF',
+          light: '#0E7C86',
+          dark: '#5EEAD4',
         },
         success: {
           50: '#E9F8F1',
           500: '#189C6E',
           600: '#128058',
         },
+        // Shifted toward gold/yellow (away from orange) so it stays visually
+        // distinct from the new terracotta primary.
         warning: {
-          50: '#FDF3E6',
-          500: '#D98A2B',
-          600: '#B96F1B',
+          50: '#FEF9E7',
+          500: '#C99A0A',
+          600: '#A67D08',
         },
         danger: {
           50: '#FBEAEB',
@@ -62,7 +74,7 @@ export default {
         },
       },
       boxShadow: {
-        card: '0 1px 2px rgba(20, 21, 43, 0.04), 0 4px 16px rgba(20, 21, 43, 0.04)',
+        card: '0 1px 2px rgba(28, 25, 23, 0.05), 0 4px 16px rgba(28, 25, 23, 0.05)',
         'card-dark': '0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 20px rgba(0, 0, 0, 0.25)',
       },
       borderRadius: {
