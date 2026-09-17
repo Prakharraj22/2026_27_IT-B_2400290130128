@@ -1,0 +1,133 @@
+import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Sparkles, X, Send } from 'lucide-react';
+import { cn } from '../../utils/cn';
+
+interface Message {
+  id: number;
+  role: 'user' | 'assistant';
+  text: string;
+}
+
+const quickQuestions = [
+  'What should I learn next?',
+  'Why am I missing this skill?',
+  'How can I improve my resume?',
+  'Which jobs match me?',
+];
+
+// Mock responses keyed by quick question \u2014 designed to be swapped for a real
+// call to POST /v1/assistant/chat once a backend + LLM is available.
+const mockResponses: Record<string, string> = {
+  'What should I learn next?':
+    'Based on your roadmap, Spring Boot is your active focus \u2014 you\u2019re 55% through it. After that, REST APIs and Docker are next in sequence toward Backend Developer.',
+  'Why am I missing this skill?':
+    'Spring Boot, Docker and System Design don\u2019t appear in your resume or projects yet, but they show up in most Backend Developer job listings you\u2019re matched against.',
+  'How can I improve my resume?':
+    'Add measurable outcomes to your project bullets, mention any testing practices you\u2019ve used, and note any deployment or Docker experience \u2014 even small exposure counts.',
+  'Which jobs match me?':
+    'Software Engineer I at Orbital Systems (91% match) and Full-Stack Developer Intern at Loomstack (88% match) are your closest fits right now.',
+};
+
+export function AIAssistant() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([
+    { id: 0, role: 'assistant', text: 'Hi! I\u2019m your CareerAI Assistant. Ask me anything about your skills, roadmap or job matches.' },
+  ]);
+  const [input, setInput] = useState('');
+
+  const send = (text: string) => {
+    if (!text.trim()) return;
+    const userMsg: Message = { id: Date.now(), role: 'user', text };
+    const reply =
+      mockResponses[text] ??
+      'That\u2019s a great question \u2014 once connected to the live model, I\u2019ll pull directly from your profile to answer that in detail.';
+    setMessages((m) => [...m, userMsg, { id: Date.now() + 1, role: 'assistant', text: reply }]);
+    setInput('');
+  };
+
+  return (
+    <>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Open CareerAI Assistant"
+        className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white shadow-xl transition-transform hover:scale-105 active:scale-95"
+      >
+        {open ? <X className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: 16, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 16, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            className="fixed bottom-24 right-5 z-40 flex h-[500px] w-[92vw] max-w-sm flex-col overflow-hidden rounded-2xl border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark shadow-2xl"
+          >
+            <div className="flex items-center gap-2.5 border-b border-border-light dark:border-border-dark bg-primary-600 px-4 py-3.5 text-white">
+              <Sparkles className="h-4.5 w-4.5" />
+              <div>
+                <p className="text-sm font-semibold">CareerAI Assistant</p>
+                <p className="text-[11px] text-primary-100">Here to help with your career path</p>
+              </div>
+            </div>
+
+            <div className="flex-1 space-y-3 overflow-y-auto p-4">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={cn(
+                    'max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed',
+                    m.role === 'assistant'
+                      ? 'bg-canvas-light dark:bg-white/5 text-ink-light dark:text-ink-dark'
+                      : 'ml-auto bg-primary-600 text-white'
+                  )}
+                >
+                  {m.text}
+                </div>
+              ))}
+            </div>
+
+            {messages.length <= 1 && (
+              <div className="flex flex-wrap gap-1.5 border-t border-border-light dark:border-border-dark px-4 py-3">
+                {quickQuestions.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => send(q)}
+                    className="rounded-full border border-border-light dark:border-border-dark px-2.5 py-1 text-xs text-muted-light dark:text-muted-dark hover:border-primary-400 hover:text-primary-600 dark:hover:text-primary-300"
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                send(input);
+              }}
+              className="flex items-center gap-2 border-t border-border-light dark:border-border-dark p-3"
+            >
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask about your career..."
+                aria-label="Ask CareerAI Assistant"
+                className="flex-1 rounded-xl border border-border-light dark:border-border-dark bg-canvas-light dark:bg-white/5 px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-primary-500"
+              />
+              <button
+                type="submit"
+                aria-label="Send message"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white hover:bg-primary-700"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
