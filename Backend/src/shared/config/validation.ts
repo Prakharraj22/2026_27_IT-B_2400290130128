@@ -18,7 +18,7 @@ export const validationSchema = Joi.object({
   RATE_LIMIT_TTL: Joi.number().default(60000),
   RATE_LIMIT_MAX: Joi.number().default(100),
   RATE_LIMIT_AUTH_MAX: Joi.number().default(10),
-  CORS_ORIGINS: Joi.string().default('http://localhost:3001'),
+  CORS_ORIGINS: Joi.string().default('http://localhost:5173,http://localhost:3001'),
   VECTOR_DIMENSION: Joi.number().default(1536),
   CACHE_TTL: Joi.number().default(3600),
   AI_WORKER_TIMEOUT_MS: Joi.number().default(5000),

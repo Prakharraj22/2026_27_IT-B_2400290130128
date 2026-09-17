@@ -120,7 +120,39 @@ This document records key engineering assumptions, trade-offs, and instructions 
 
 ---
 
-## 10. External Module Contracts (Resume, AI Worker, Notifications)
+## 10. Frontend Integration Decisions
+
+- **Decision:** `CORS_ORIGINS` default now includes `http://localhost:5173` (Vite's default dev port), in addition to the previous `3000`/`3001` defaults.
+- **Reason:** The team's React frontend (`frontend/`) runs on Vite, whose default dev server port is `5173`, not `3001`.
+- **How to Change Later:** Update `CORS_ORIGINS` in `.env` to match wherever the frontend is actually deployed.
+
+- **Decision:** The frontend's `src/services/api/` layer is wired to real endpoints for **auth, profiles, job matching/jobs, and market skill-trends/salary-benchmarks**. `resumeApi`, `roadmapApi`, `careerApi`, and `notificationApi` remain mocked.
+- **Reason:** Those four remaining modules depend on the Resume Module, AI/ML Worker, and Notifications service, none of which exist as backend endpoints yet — wiring them up would mean either fabricating endpoints that don't reflect real business logic, or guessing at contracts another engineer owns.
+- **How to Change Later:** Once those modules exist, replace the `simulateLatency(...)` mock bodies in the corresponding frontend file with real `apiRequest(...)` calls, following the pattern in `jobsApi.ts`/`marketApi.ts`. Each mocked function already has a comment explaining exactly what it's waiting on.
+
+- **Decision:** Frontend `User` fields the backend doesn't model (`education`, `graduationYear`, `targetCareer`) are stored inside the Profile's existing `preferences` JSONB field rather than adding new columns.
+- **Reason:** `preferences` was already designed as a flexible bag for exactly this kind of UI-only data; adding dedicated columns for fields with no other backend consumer would be premature schema growth.
+- **Trade-offs:** These fields aren't queryable/indexable. If they become load-bearing for matching or search, promote them to real columns.
+- **How to Change Later:** Add columns to `Profile` in `schema.prisma`, migrate, and update `UpdateProfileDto` + `frontend/src/services/api/profileApi.ts`'s mapping.
+
+- **Decision:** The frontend's richer `Job` fields with no backend equivalent (`experience`, `type`, `requirements`, `responsibilities`, `benefits`, `companyInfo`) are populated with fixed placeholders (`'Not specified'`, `'Full-time'`, empty arrays/strings) rather than fabricated content.
+- **Reason:** The `Job` schema intentionally stores only `title/company/description/location/remote/salaryMin-Max/skillsRequired` (see §1-4). Inventing structured requirements/benefits text would misrepresent synthetic placeholder text as real job data.
+- **How to Change Later:** If these fields become real product requirements, add them to the `Job` Prisma model, the ingestion pipeline, and the seed data — then remove the placeholders in `frontend/src/services/api/jobsApi.ts`.
+
+- **Decision:** "Save job" (`toggleSaveJob`) is implemented as client-only state (`localStorage`), not synced to the backend.
+- **Reason:** No `/v1/jobs/:id/save` endpoint exists, and adding one wasn't part of the approved integration scope.
+- **How to Change Later:** Add a `SavedJob` table/endpoint in the Matching module, then replace the `localStorage` logic in `jobsApi.ts` with a real API call.
+
+- **Decision:** `getTrendingSkills()` maps the backend's `demandCount` (a raw posting count) directly into the frontend's `TrendingSkill.demandChange` field, even though the Market page currently renders it with a "%" suffix.
+- **Reason:** `demandCount` is the only real demand signal the backend computes; there is no percentage-change calculation in `AggregationService`.
+- **Trade-offs:** The rendered "+N%" label is technically inaccurate (it's a count, not a percent change). This is a cosmetic label fix for whoever owns the Market page, not a backend or data-contract issue.
+- **How to Change Later:** Either compute a real period-over-period percentage change in `AggregationService.getSkillTrends`, or change the frontend label from "%" to "postings".
+
+- **Decision:** Job matches will be empty (with a `hint` message) for any user until their `Profile.embedding` is set.
+- **Reason:** Embedding generation is the AI Worker's responsibility (see §10 below); this backend intentionally never auto-generates embeddings outside of tests, even though a `MockEmbeddingProvider` exists.
+- **How to Change Later:** Once the AI Worker is online, it should call `ProfilesService.updateEmbedding(userId, embedding)` after processing a resume/profile — the Matching module and frontend already handle the "no embedding yet" and "has embedding" cases correctly on both ends.
+
+## 11. External Module Contracts (Resume, AI Worker, Notifications)
 
 - **Resume Module:** Assumed to parse resumes asynchronously and invoke `ProfileSkillsUpdater.updateSkills(userId, skills)`. Auth & Profiles module owns the database table; Resume Module never executes raw DB mutations.
 - **AI Worker:** Assumed to consume text and output embedding arrays of length `VECTOR_DIMENSION`. The backend provides `MockEmbeddingProvider` for local autonomy and integration tests.

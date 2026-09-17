@@ -2,6 +2,11 @@ import { simulateLatency } from './client';
 import { notifications as initialNotifications } from '../../data/notifications';
 import type { NotificationItem } from '../../types';
 
+// Kept mocked: the Notifications module (owned by another engineer) doesn't
+// exist as a backend service yet — it's designed to listen for domain events
+// like `user.profile.updated` (see Backend/ASSUMPTIONS.md §10), not to be
+// polled via REST, so there's no `/v1/notifications` endpoint to call here.
+
 let store: NotificationItem[] = [...initialNotifications];
 
 // GET /v1/notifications

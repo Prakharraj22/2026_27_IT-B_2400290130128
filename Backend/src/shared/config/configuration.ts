@@ -25,7 +25,7 @@ export default () => ({
     authMax: parseInt(process.env.RATE_LIMIT_AUTH_MAX, 10) || 10,
   },
   cors: {
-    origins: (process.env.CORS_ORIGINS || 'http://localhost:3001').split(','),
+    origins: (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:3001').split(','),
   },
   vector: {
     dimension: parseInt(process.env.VECTOR_DIMENSION, 10) || 1536,

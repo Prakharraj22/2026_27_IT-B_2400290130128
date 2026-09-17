@@ -20,14 +20,21 @@ Unlike a basic job recommendation system, this platform explains **why** a recom
 
 ## Tech Stack
 
-- **Frontend:** React / Next.js, Tailwind CSS
-- **Backend:** FastAPI or Node.js / Express
-- **Database:** PostgreSQL
-- **AI:** LLM API, Embeddings, RAG
-- **Vector Database:** Vector search for semantic retrieval
-- **Document Processing:** PDF/DOCX parsing
-- **Authentication:** JWT / OAuth
-- **Deployment:** Docker and AWS
+- **Frontend:** React 19 + Vite + TypeScript, Tailwind CSS (see [`frontend/`](frontend))
+- **Backend:** NestJS (TypeScript) modular monolith (see [`Backend/`](Backend))
+- **Database:** PostgreSQL 15 with pgvector (HNSW cosine similarity), via Prisma ORM
+- **Cache & Rate Limiting:** Redis
+- **AI:** Embeddings-based semantic matching; LLM/RAG features are planned but not yet implemented
+- **Authentication:** JWT (access + rotating refresh tokens), Argon2id password hashing
+- **Deployment:** Docker Compose (backend + Postgres + Redis)
+
+## Running the Full Stack Locally
+
+1. **Backend** — see [`Backend/README.md`](Backend/README.md) for full setup (Docker Compose, migrations, seed data). It serves the API at `http://localhost:3000/v1`, with Swagger docs at `/v1/docs`.
+2. **Frontend** — `cd frontend && cp .env.example .env && npm install && npm run dev`, served at `http://localhost:5173`. `VITE_API_BASE_URL` in `.env` must point at the backend's `/v1` base URL.
+3. The backend's `CORS_ORIGINS` (see `Backend/.env.example`) must include the frontend's dev origin (`http://localhost:5173` by default).
+
+**Current integration status:** the frontend's UI is fully built; its `src/services/api/` layer is wired to the real backend for auth, profiles, job matching, and market skill-trends/salary-benchmarks. Resume analysis, AI-generated roadmaps, career recommendations, and notifications remain backed by mock data because those modules (Resume, AI Worker, Notifications) don't have backend implementations yet — each mocked file documents exactly why. See `Backend/ASSUMPTIONS.md` for the full list of integration decisions and known limitations.
 
 ## Team of 4
 

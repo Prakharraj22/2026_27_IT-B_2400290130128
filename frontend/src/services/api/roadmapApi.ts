@@ -2,6 +2,9 @@ import { simulateLatency } from './client';
 import { roadmapSteps as initialSteps } from '../../data/roadmap';
 import type { RoadmapStep } from '../../types';
 
+// Kept mocked: AI-generated learning roadmaps depend on the AI/ML Worker
+// (owned by another engineer), which the backend has no endpoint for yet.
+
 let steps: RoadmapStep[] = [...initialSteps];
 
 // GET /v1/roadmap

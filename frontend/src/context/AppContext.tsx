@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { User, NotificationItem } from '../types';
 import { getProfile } from '../services/api/profileApi';
 import { getNotifications, markAsRead as apiMarkAsRead, markAllAsRead as apiMarkAllAsRead } from '../services/api/notificationApi';
+import { hasAuthTokens, setSessionExpiredHandler } from '../services/api/client';
+import { logout as apiLogout } from '../services/api/authApi';
 
 interface AppContextValue {
   user: User | null;
@@ -19,12 +21,19 @@ const AppContext = createContext<AppContextValue | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('careerai-auth') === 'true');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => hasAuthTokens());
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
+    // Lets the API client force a logout when token refresh fails (e.g. the
+    // refresh token was revoked or expired), without client.ts depending on
+    // this context or the router.
+    setSessionExpiredHandler(() => logout());
+  }, []);
+
+  useEffect(() => {
     if (isAuthenticated) {
-      getProfile().then(setUser);
+      getProfile().then(setUser).catch(() => logout());
       refreshNotifications();
     }
   }, [isAuthenticated]);
@@ -34,15 +43,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   };
 
   const login = (u: User) => {
+    // Tokens are already stored by authApi.login/signup before this is called.
     setUser(u);
     setIsAuthenticated(true);
-    localStorage.setItem('careerai-auth', 'true');
   };
 
   const logout = () => {
     setUser(null);
     setIsAuthenticated(false);
-    localStorage.removeItem('careerai-auth');
+    apiLogout().catch(() => undefined);
   };
 
   const markAsRead = (id: string) => {
