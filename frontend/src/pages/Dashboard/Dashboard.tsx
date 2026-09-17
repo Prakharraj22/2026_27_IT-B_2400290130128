@@ -10,7 +10,7 @@ import { RecentActivityList } from '../../components/dashboard/RecentActivityLis
 import { useApp } from '../../context/AppContext';
 import { getCareerRecommendations } from '../../services/api/careerApi';
 import { getRoadmap } from '../../services/api/roadmapApi';
-import { getRecommendedJobs, toggleSaveJob } from '../../services/api/jobsApi';
+import { getRecommendedJobs, getRecommendedJobsHint, toggleSaveJob } from '../../services/api/jobsApi';
 import { getSkills } from '../../services/api/profileApi';
 import { recentActivity } from '../../data/notifications';
 import type { Career, RoadmapStep, Job, UserSkill } from '../../types';
@@ -20,12 +20,16 @@ export function Dashboard() {
   const [careers, setCareers] = useState<Career[] | null>(null);
   const [roadmap, setRoadmap] = useState<RoadmapStep[] | null>(null);
   const [jobs, setJobs] = useState<Job[] | null>(null);
+  const [jobsHint, setJobsHint] = useState<string | null>(null);
   const [skills, setSkills] = useState<UserSkill[] | null>(null);
 
   useEffect(() => {
     getCareerRecommendations().then(setCareers);
     getRoadmap().then(setRoadmap);
-    getRecommendedJobs().then(setJobs);
+    getRecommendedJobs().then((result) => {
+      setJobs(result);
+      setJobsHint(getRecommendedJobsHint());
+    });
     getSkills().then(setSkills);
   }, []);
 
@@ -38,13 +42,17 @@ export function Dashboard() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  // Avoids "Good morning,  👋" (with an orphaned double space) for users
+  // who haven't set a name yet.
+  const firstName = user?.name?.trim().split(' ')[0];
+  const greetingLine = firstName ? `${greeting}, ${firstName} 👋` : `${greeting} 👋`;
 
   return (
     <div>
-      <Topbar title={`${greeting}, ${user?.name.split(' ')[0] ?? ''} 👋`} subtitle="Here's your career intelligence." />
+      <Topbar title={greetingLine} subtitle="Here's your career intelligence." />
       <div className="mb-6 flex items-center justify-between lg:hidden">
         <div>
-          <h1 className="text-xl font-bold">{greeting}, {user?.name.split(' ')[0] ?? ''} 👋</h1>
+          <h1 className="text-xl font-bold">{greetingLine}</h1>
           <p className="mt-1 text-sm text-muted-light dark:text-muted-dark">Here's your career intelligence.</p>
         </div>
       </div>
@@ -154,9 +162,18 @@ export function Dashboard() {
           <h2 className="text-base font-semibold">Recommended Jobs</h2>
           <Link to="/jobs" className="text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-300">View all</Link>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {jobs ? jobs.slice(0, 4).map((j) => <JobCard key={j.id} job={j} onToggleSave={handleToggleSave} />) : [1, 2].map((i) => <SkeletonCard key={i} />)}
-        </div>
+        {jobs && jobs.length === 0 && jobsHint ? (
+          <Card className="p-5 text-sm text-muted-light dark:text-muted-dark">
+            {jobsHint}{' '}
+            <Link to="/profile" className="font-medium text-primary-600 dark:text-primary-300">
+              Update your profile
+            </Link>
+          </Card>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2">
+            {jobs ? jobs.slice(0, 4).map((j) => <JobCard key={j.id} job={j} onToggleSave={handleToggleSave} />) : [1, 2].map((i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
       </div>
 
       <div className="mt-8 grid gap-5 lg:grid-cols-2">
