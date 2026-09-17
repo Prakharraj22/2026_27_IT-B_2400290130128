@@ -22,6 +22,9 @@ export class ProfilesRepository {
       location?: string;
       yearsExperience?: number;
       preferences?: Record<string, any>;
+      projects?: Record<string, any>[];
+      experience?: Record<string, any>[];
+      certifications?: Record<string, any>[];
     },
   ): Promise<Profile> {
     return this.prisma.profile.update({

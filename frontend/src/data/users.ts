@@ -8,7 +8,7 @@ export const currentUser: User = {
   education: 'B.Tech, Information Technology',
   graduationYear: 2026,
   experienceLevel: 'Student',
-  avatarColor: '#5A45E0',
+  avatarColor: '#2563EB',
   targetCareer: 'Backend Developer',
   profileCompleteness: 78,
 };

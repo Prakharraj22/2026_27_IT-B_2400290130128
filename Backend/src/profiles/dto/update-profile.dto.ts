@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsInt, IsOptional, IsObject, Min, Max } from 'class-validator';
+import { IsString, IsInt, IsOptional, IsObject, IsArray, ValidateNested, Min, Max } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ProjectDto, ExperienceDto, CertificationDto } from './profile-items.dto';
 
 export class UpdateProfileDto {
   @ApiPropertyOptional({ example: 'Jane Doe' })
@@ -28,4 +30,25 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsObject()
   preferences?: Record<string, any>;
+
+  @ApiPropertyOptional({ type: [ProjectDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ProjectDto)
+  projects?: ProjectDto[];
+
+  @ApiPropertyOptional({ type: [ExperienceDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ExperienceDto)
+  experience?: ExperienceDto[];
+
+  @ApiPropertyOptional({ type: [CertificationDto] })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CertificationDto)
+  certifications?: CertificationDto[];
 }

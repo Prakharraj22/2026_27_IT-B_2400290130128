@@ -1,7 +1,5 @@
 import { apiRequest, simulateLatency } from './client';
-import {
-  userProjects, userExperience, userCertifications, userInterests,
-} from '../../data/users';
+import { userInterests } from '../../data/users';
 import type { User, UserSkill, Project, Experience, Certification } from '../../types';
 
 // Shape returned by GET/PATCH /v1/profiles/me (see Backend/src/profiles/dto/profile-response.dto.ts).
@@ -14,6 +12,9 @@ interface BackendProfile {
   location?: string;
   yearsExperience?: number;
   skills: string[];
+  projects: Project[];
+  experience: Experience[];
+  certifications: Certification[];
   preferences: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
@@ -105,21 +106,70 @@ export async function getSkills(): Promise<UserSkill[]> {
   return (profile.skills || []).map((name) => ({ name, proficiency: 'Intermediate' as const }));
 }
 
-// The backend has no Projects/Experience/Certifications/Interests tables —
-// these belong to a richer profile/resume schema that hasn't been built yet.
-// Kept mocked until the Resume Module (or a future Profile extension) exists.
+// Projects/Experience/Certifications live directly on Profile (JSONB arrays,
+// same pattern as `skills`), fully user-owned — unlike `skills`, the backend
+// doesn't reject writes to these through PATCH /profiles/me. Each add/remove
+// does a read-modify-write against the current array so concurrent edits to
+// other profile fields are never clobbered.
 export async function getProjects(): Promise<Project[]> {
-  return simulateLatency(userProjects);
+  const profile = await apiRequest<BackendProfile>('/profiles/me');
+  return profile.projects || [];
+}
+
+export async function addProject(project: Omit<Project, 'id'>): Promise<Project[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const projects = [...(current.projects || []), { ...project, id: crypto.randomUUID() }];
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { projects } });
+  return updated.projects || [];
+}
+
+export async function removeProject(id: string): Promise<Project[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const projects = (current.projects || []).filter((p) => p.id !== id);
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { projects } });
+  return updated.projects || [];
 }
 
 export async function getExperience(): Promise<Experience[]> {
-  return simulateLatency(userExperience);
+  const profile = await apiRequest<BackendProfile>('/profiles/me');
+  return profile.experience || [];
+}
+
+export async function addExperience(entry: Omit<Experience, 'id'>): Promise<Experience[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const experience = [...(current.experience || []), { ...entry, id: crypto.randomUUID() }];
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { experience } });
+  return updated.experience || [];
+}
+
+export async function removeExperience(id: string): Promise<Experience[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const experience = (current.experience || []).filter((e) => e.id !== id);
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { experience } });
+  return updated.experience || [];
 }
 
 export async function getCertifications(): Promise<Certification[]> {
-  return simulateLatency(userCertifications);
+  const profile = await apiRequest<BackendProfile>('/profiles/me');
+  return profile.certifications || [];
 }
 
+export async function addCertification(cert: Omit<Certification, 'id'>): Promise<Certification[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const certifications = [...(current.certifications || []), { ...cert, id: crypto.randomUUID() }];
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { certifications } });
+  return updated.certifications || [];
+}
+
+export async function removeCertification(id: string): Promise<Certification[]> {
+  const current = await apiRequest<BackendProfile>('/profiles/me');
+  const certifications = (current.certifications || []).filter((c) => c.id !== id);
+  const updated = await apiRequest<BackendProfile>('/profiles/me', { method: 'PATCH', body: { certifications } });
+  return updated.certifications || [];
+}
+
+// The backend has no Interests field yet (it wasn't part of the original
+// Profile schema and there's no dedicated UI to edit it) — kept mocked.
 export async function getInterests(): Promise<string[]> {
   return simulateLatency(userInterests);
 }

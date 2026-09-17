@@ -17,6 +17,17 @@ const FOCUSABLE_SELECTOR =
 export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
+  // Callers typically pass an inline `() => setOpen(false)`, a new function
+  // identity on every render of the parent (e.g. every keystroke in a
+  // controlled input inside the modal). Reading it through a ref — updated
+  // every render, but NOT a dependency of the effect below — means the
+  // setup/teardown effect only re-runs when `open` itself actually changes,
+  // not on every parent re-render. It previously depended on `onClose`
+  // directly, which re-ran the whole effect (including re-focusing the
+  // first focusable element) on every keystroke, stealing focus from
+  // whatever input the user was typing into after a single character.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -34,7 +45,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
 
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       // Focus trap: without this, Tab/Shift+Tab can move focus to elements
@@ -60,7 +71,7 @@ export function Modal({ open, onClose, title, children, maxWidth = 'max-w-lg' }:
       document.body.style.overflow = '';
       (triggerRef.current as HTMLElement | null)?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   return createPortal(
     <AnimatePresence>

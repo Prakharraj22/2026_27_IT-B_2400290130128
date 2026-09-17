@@ -35,6 +35,9 @@ model Profile {
   location        String?
   yearsExperience Int?     @map("years_experience")
   skills          Json     @default("[]")  // Resume Module owned
+  projects        Json     @default("[]")
+  experience      Json     @default("[]")
+  certifications  Json     @default("[]")
   preferences     Json     @default("{}")
   embedding       Unsupported("vector(1536)")?  // AI Worker owned
   createdAt       DateTime @default(now()) @map("created_at")

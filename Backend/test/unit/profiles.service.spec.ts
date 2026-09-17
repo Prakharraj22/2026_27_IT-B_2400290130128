@@ -85,6 +85,43 @@ describe('ProfilesService (Unit Tests)', () => {
         expect.objectContaining({ userId: 'user-1' }),
       );
     });
+
+    it('should persist and return projects/experience/certifications', async () => {
+      profilesRepo.findByUserId.mockResolvedValue({
+        id: 'prof-1',
+        userId: 'user-1',
+        skills: [],
+        preferences: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      const projects = [{ id: 'p1', title: 'Tracker App', skills: ['React'] }];
+      const experience = [{ id: 'e1', role: 'Intern', company: 'Acme', duration: '2025' }];
+      const certifications = [{ id: 'c1', name: 'AWS Dev', issuer: 'AWS', year: 2025 }];
+
+      profilesRepo.updateProfile.mockResolvedValue({
+        id: 'prof-1',
+        userId: 'user-1',
+        skills: [],
+        projects,
+        experience,
+        certifications,
+        preferences: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      const res = await service.updateProfile('user-1', { projects, experience, certifications } as any, {});
+
+      expect(profilesRepo.updateProfile).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({ projects, experience, certifications }),
+      );
+      expect(res.projects).toEqual(projects);
+      expect(res.experience).toEqual(experience);
+      expect(res.certifications).toEqual(certifications);
+    });
   });
 
   describe('getPublicProfile', () => {

@@ -5,10 +5,19 @@ import { Card, Badge, Button, Avatar, Modal, Input, Select } from '../../compone
 import { SkillCard } from '../../components/skills/SkillCard';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/ui/Toast';
-import { getSkills, getProjects, getExperience, getCertifications, getInterests, updateProfile } from '../../services/api/profileApi';
+import {
+  getSkills, getProjects, addProject, removeProject,
+  getExperience, addExperience, removeExperience,
+  getCertifications, addCertification, removeCertification,
+  getInterests, updateProfile,
+} from '../../services/api/profileApi';
 import type { UserSkill, Project, Experience, Certification, User } from '../../types';
 
 const EXPERIENCE_LEVELS: User['experienceLevel'][] = ['Student', 'Fresher', '1-3 years', '3-5 years', '5+ years'];
+
+const emptyProjectForm = { title: '', description: '', skills: '', link: '' };
+const emptyExperienceForm = { role: '', company: '', duration: '', description: '' };
+const emptyCertForm = { name: '', issuer: '', year: String(new Date().getFullYear()) };
 
 export function Profile() {
   const { user, login } = useApp();
@@ -23,6 +32,18 @@ export function Profile() {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<Pick<User, 'name' | 'location' | 'education' | 'graduationYear' | 'experienceLevel' | 'targetCareer'> | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
+
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
+  const [projectForm, setProjectForm] = useState(emptyProjectForm);
+  const [savingProject, setSavingProject] = useState(false);
+
+  const [addExperienceOpen, setAddExperienceOpen] = useState(false);
+  const [experienceForm, setExperienceForm] = useState(emptyExperienceForm);
+  const [savingExperience, setSavingExperience] = useState(false);
+
+  const [addCertOpen, setAddCertOpen] = useState(false);
+  const [certForm, setCertForm] = useState(emptyCertForm);
+  const [savingCert, setSavingCert] = useState(false);
 
   useEffect(() => {
     getSkills().then(setSkills);
@@ -49,7 +70,94 @@ export function Profile() {
     showToast('Skill added for this session — persistent skill sync is coming soon.', 'info');
   };
 
-  const notYetAvailable = (feature: string) => showToast(`${feature} isn't available yet — coming soon.`, 'info');
+  const saveProject = async () => {
+    if (!projectForm.title.trim()) return;
+    setSavingProject(true);
+    try {
+      const updated = await addProject({
+        title: projectForm.title.trim(),
+        description: projectForm.description.trim(),
+        skills: projectForm.skills.split(',').map((s) => s.trim()).filter(Boolean),
+        link: projectForm.link.trim() || undefined,
+      });
+      setProjects(updated);
+      setProjectForm(emptyProjectForm);
+      setAddProjectOpen(false);
+      showToast('Project added.', 'success');
+    } catch {
+      showToast('Could not add the project. Please try again.', 'error');
+    } finally {
+      setSavingProject(false);
+    }
+  };
+
+  const deleteProject = async (id: string) => {
+    try {
+      setProjects(await removeProject(id));
+      showToast('Project removed.', 'info');
+    } catch {
+      showToast('Could not remove the project. Please try again.', 'error');
+    }
+  };
+
+  const saveExperience = async () => {
+    if (!experienceForm.role.trim() || !experienceForm.company.trim()) return;
+    setSavingExperience(true);
+    try {
+      const updated = await addExperience({
+        role: experienceForm.role.trim(),
+        company: experienceForm.company.trim(),
+        duration: experienceForm.duration.trim(),
+        description: experienceForm.description.trim(),
+      });
+      setExperience(updated);
+      setExperienceForm(emptyExperienceForm);
+      setAddExperienceOpen(false);
+      showToast('Experience added.', 'success');
+    } catch {
+      showToast('Could not add the experience entry. Please try again.', 'error');
+    } finally {
+      setSavingExperience(false);
+    }
+  };
+
+  const deleteExperience = async (id: string) => {
+    try {
+      setExperience(await removeExperience(id));
+      showToast('Experience removed.', 'info');
+    } catch {
+      showToast('Could not remove the entry. Please try again.', 'error');
+    }
+  };
+
+  const saveCertification = async () => {
+    if (!certForm.name.trim() || !certForm.issuer.trim()) return;
+    setSavingCert(true);
+    try {
+      const updated = await addCertification({
+        name: certForm.name.trim(),
+        issuer: certForm.issuer.trim(),
+        year: Number(certForm.year) || new Date().getFullYear(),
+      });
+      setCertifications(updated);
+      setCertForm(emptyCertForm);
+      setAddCertOpen(false);
+      showToast('Certification added.', 'success');
+    } catch {
+      showToast('Could not add the certification. Please try again.', 'error');
+    } finally {
+      setSavingCert(false);
+    }
+  };
+
+  const deleteCertification = async (id: string) => {
+    try {
+      setCertifications(await removeCertification(id));
+      showToast('Certification removed.', 'info');
+    } catch {
+      showToast('Could not remove the certification. Please try again.', 'error');
+    }
+  };
 
   const openEdit = () => {
     if (!user) return;
@@ -133,44 +241,48 @@ export function Profile() {
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Projects</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding projects')}>Add Project</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAddProjectOpen(true)}>Add Project</Button>
         </div>
-        <div className="space-y-4">
-          {projects.map((p) => (
-            <div key={p.id} className="rounded-xl border border-border-light dark:border-border-dark p-4">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-light dark:text-ink-dark">
-                    {p.title}
-                    {p.link && (
-                      <a href={p.link} target="_blank" rel="noreferrer" aria-label="Open project link">
-                        <ExternalLink className="h-3.5 w-3.5 text-muted-light dark:text-muted-dark" />
-                      </a>
-                    )}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-light dark:text-muted-dark">{p.description}</p>
+        {projects.length === 0 ? (
+          <p className="text-sm text-muted-light dark:text-muted-dark">No projects added yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {projects.map((p) => (
+              <div key={p.id} className="rounded-xl border border-border-light dark:border-border-dark p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-ink-light dark:text-ink-dark">
+                      {p.title}
+                      {p.link && (
+                        <a href={p.link} target="_blank" rel="noreferrer" aria-label="Open project link">
+                          <ExternalLink className="h-3.5 w-3.5 text-muted-light dark:text-muted-dark" />
+                        </a>
+                      )}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-light dark:text-muted-dark">{p.description}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteProject(p.id)}
+                    className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10"
+                    aria-label={`Delete ${p.title}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => notYetAvailable('Deleting projects')}
-                  className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10"
-                  aria-label={`Delete ${p.title}`}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="mt-2.5 flex flex-wrap gap-1.5">
+                  {p.skills.map((s) => <Badge key={s} variant="neutral">{s}</Badge>)}
+                </div>
               </div>
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {p.skills.map((s) => <Badge key={s} variant="neutral">{s}</Badge>)}
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Experience */}
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Experience</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding experience')}>Add Experience</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAddExperienceOpen(true)}>Add Experience</Button>
         </div>
         {experience.length === 0 ? (
           <p className="text-sm text-muted-light dark:text-muted-dark">No experience added yet.</p>
@@ -178,9 +290,20 @@ export function Profile() {
           <div className="space-y-4">
             {experience.map((e) => (
               <div key={e.id} className="rounded-xl border border-border-light dark:border-border-dark p-4">
-                <p className="text-sm font-semibold text-ink-light dark:text-ink-dark">{e.role}</p>
-                <p className="text-xs text-muted-light dark:text-muted-dark">{e.company} · {e.duration}</p>
-                <p className="mt-2 text-sm text-muted-light dark:text-muted-dark">{e.description}</p>
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-semibold text-ink-light dark:text-ink-dark">{e.role}</p>
+                    <p className="text-xs text-muted-light dark:text-muted-dark">{e.company} · {e.duration}</p>
+                    <p className="mt-2 text-sm text-muted-light dark:text-muted-dark">{e.description}</p>
+                  </div>
+                  <button
+                    onClick={() => deleteExperience(e.id)}
+                    className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10"
+                    aria-label={`Delete ${e.role}`}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -191,19 +314,30 @@ export function Profile() {
       <Card className="mb-6 p-6">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-semibold">Certifications</h3>
-          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => notYetAvailable('Adding certifications')}>Add Certification</Button>
+          <Button size="sm" variant="outline" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => setAddCertOpen(true)}>Add Certification</Button>
         </div>
-        <div className="space-y-2">
-          {certifications.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border-light dark:border-border-dark px-4 py-3">
-              <Award className="h-4 w-4 shrink-0 text-primary-500" />
-              <div>
-                <p className="text-sm font-medium text-ink-light dark:text-ink-dark">{c.name}</p>
-                <p className="text-xs text-muted-light dark:text-muted-dark">{c.issuer} · {c.year}</p>
+        {certifications.length === 0 ? (
+          <p className="text-sm text-muted-light dark:text-muted-dark">No certifications added yet.</p>
+        ) : (
+          <div className="space-y-2">
+            {certifications.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 rounded-xl border border-border-light dark:border-border-dark px-4 py-3">
+                <Award className="h-4 w-4 shrink-0 text-primary-500" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-ink-light dark:text-ink-dark">{c.name}</p>
+                  <p className="text-xs text-muted-light dark:text-muted-dark">{c.issuer} · {c.year}</p>
+                </div>
+                <button
+                  onClick={() => deleteCertification(c.id)}
+                  className="shrink-0 rounded-lg p-1.5 text-muted-light hover:bg-danger-50 hover:text-danger-500 dark:text-muted-dark dark:hover:bg-danger-500/10"
+                  aria-label={`Delete ${c.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </Card>
 
       {/* Career Interests */}
@@ -246,6 +380,35 @@ export function Profile() {
             <Button fullWidth loading={savingEdit} onClick={saveEdit}>Save Changes</Button>
           </div>
         )}
+      </Modal>
+
+      <Modal open={addProjectOpen} onClose={() => setAddProjectOpen(false)} title="Add a project">
+        <div className="space-y-4">
+          <Input label="Title" placeholder="e.g. Personal Finance Tracker" value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} />
+          <Input label="Description" placeholder="What does it do?" value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} />
+          <Input label="Skills used" placeholder="e.g. React, Node.js, PostgreSQL" hint="Comma-separated" value={projectForm.skills} onChange={(e) => setProjectForm({ ...projectForm, skills: e.target.value })} />
+          <Input label="Link (optional)" placeholder="https://github.com/..." value={projectForm.link} onChange={(e) => setProjectForm({ ...projectForm, link: e.target.value })} />
+          <Button fullWidth loading={savingProject} onClick={saveProject}>Add Project</Button>
+        </div>
+      </Modal>
+
+      <Modal open={addExperienceOpen} onClose={() => setAddExperienceOpen(false)} title="Add experience">
+        <div className="space-y-4">
+          <Input label="Role" placeholder="e.g. Backend Engineering Intern" value={experienceForm.role} onChange={(e) => setExperienceForm({ ...experienceForm, role: e.target.value })} />
+          <Input label="Company" placeholder="e.g. Acme Corp" value={experienceForm.company} onChange={(e) => setExperienceForm({ ...experienceForm, company: e.target.value })} />
+          <Input label="Duration" placeholder="e.g. Jun 2025 - Aug 2025" value={experienceForm.duration} onChange={(e) => setExperienceForm({ ...experienceForm, duration: e.target.value })} />
+          <Input label="Description" placeholder="What did you work on?" value={experienceForm.description} onChange={(e) => setExperienceForm({ ...experienceForm, description: e.target.value })} />
+          <Button fullWidth loading={savingExperience} onClick={saveExperience}>Add Experience</Button>
+        </div>
+      </Modal>
+
+      <Modal open={addCertOpen} onClose={() => setAddCertOpen(false)} title="Add a certification">
+        <div className="space-y-4">
+          <Input label="Name" placeholder="e.g. AWS Certified Developer" value={certForm.name} onChange={(e) => setCertForm({ ...certForm, name: e.target.value })} />
+          <Input label="Issuer" placeholder="e.g. Amazon Web Services" value={certForm.issuer} onChange={(e) => setCertForm({ ...certForm, issuer: e.target.value })} />
+          <Input label="Year" type="number" value={certForm.year} onChange={(e) => setCertForm({ ...certForm, year: e.target.value })} />
+          <Button fullWidth loading={savingCert} onClick={saveCertification}>Add Certification</Button>
+        </div>
       </Modal>
     </div>
   );

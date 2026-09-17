@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ProjectDto, ExperienceDto, CertificationDto } from './profile-items.dto';
 
 export class ProfileResponseDto {
   @ApiProperty()
@@ -24,6 +25,15 @@ export class ProfileResponseDto {
 
   @ApiProperty({ type: [String] })
   skills: string[];
+
+  @ApiProperty({ type: [ProjectDto] })
+  projects: ProjectDto[];
+
+  @ApiProperty({ type: [ExperienceDto] })
+  experience: ExperienceDto[];
+
+  @ApiProperty({ type: [CertificationDto] })
+  certifications: CertificationDto[];
 
   @ApiProperty({ type: Object })
   preferences: Record<string, any>;

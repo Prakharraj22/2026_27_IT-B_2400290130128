@@ -19,15 +19,35 @@ const quickQuestions = [
 // Mock responses keyed by quick question \u2014 designed to be swapped for a real
 // call to POST /v1/assistant/chat once a backend + LLM is available.
 const mockResponses: Record<string, string> = {
-  'What should I learn next?':
+  'what should i learn next?':
     'Based on your roadmap, Spring Boot is your active focus \u2014 you\u2019re 55% through it. After that, REST APIs and Docker are next in sequence toward Backend Developer.',
-  'Why am I missing this skill?':
+  'why am i missing this skill?':
     'Spring Boot, Docker and System Design don\u2019t appear in your resume or projects yet, but they show up in most Backend Developer job listings you\u2019re matched against.',
-  'How can I improve my resume?':
+  'how can i improve my resume?':
     'Add measurable outcomes to your project bullets, mention any testing practices you\u2019ve used, and note any deployment or Docker experience \u2014 even small exposure counts.',
-  'Which jobs match me?':
+  'which jobs match me?':
     'Software Engineer I at Orbital Systems (91% match) and Full-Stack Developer Intern at Loomstack (88% match) are your closest fits right now.',
 };
+
+// Small-talk patterns handled before falling back to the generic "connect a
+// live model" reply, so common one-word messages like "hi" don't get the
+// same non-answer as a genuinely open-ended career question.
+const CONVERSATIONAL_PATTERNS: Array<{ test: RegExp; reply: string }> = [
+  { test: /^(hi|hello|hey|yo|hiya|sup)[!.\s]*$/i, reply: 'Hi there! Ask me about your skills, roadmap, resume, or job matches \u2014 or tap one of the suggestions below.' },
+  { test: /^(good\s?(morning|afternoon|evening))[!.\s]*$/i, reply: 'Hello! What would you like to know about your career progress today?' },
+  { test: /^(thanks|thank you|thx|ty)[!.\s]*$/i, reply: 'You\u2019re welcome! Let me know if anything else comes up.' },
+  { test: /^(bye|goodbye|see ya|see you)[!.\s]*$/i, reply: 'Take care \u2014 I\u2019ll be here whenever you need career guidance.' },
+  { test: /^(who are you|what are you|what can you do)\??$/i, reply: 'I\u2019m your CareerAI Assistant \u2014 I can help with skill gaps, learning roadmaps, resume feedback, and job matches based on your profile.' },
+  { test: /^(how are you)\??$/i, reply: 'Doing well, thanks for asking! How\u2019s your career journey going?' },
+];
+
+function matchReply(rawText: string): string {
+  const normalized = rawText.trim().toLowerCase();
+  if (mockResponses[normalized]) return mockResponses[normalized];
+  const conversational = CONVERSATIONAL_PATTERNS.find((p) => p.test.test(normalized));
+  if (conversational) return conversational.reply;
+  return 'That\u2019s a great question \u2014 once connected to the live model, I\u2019ll pull directly from your profile to answer that in detail.';
+}
 
 let nextMessageId = 1;
 
@@ -46,9 +66,7 @@ export function AIAssistant() {
   const send = (text: string) => {
     if (!text.trim()) return;
     const userMsg: Message = { id: nextMessageId++, role: 'user', text };
-    const reply =
-      mockResponses[text] ??
-      'That\u2019s a great question \u2014 once connected to the live model, I\u2019ll pull directly from your profile to answer that in detail.';
+    const reply = matchReply(text);
     setMessages((m) => [...m, userMsg, { id: nextMessageId++, role: 'assistant', text: reply }]);
     setInput('');
   };
