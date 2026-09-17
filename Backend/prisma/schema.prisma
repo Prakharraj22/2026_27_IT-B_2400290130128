@@ -1,0 +1,160 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["auth", "matching", "market_intel"]
+}
+
+// ─── AUTH SCHEMA ────────────────────────────────────────────────────────────
+
+model User {
+  id           String         @id @default(uuid())
+  email        String         @unique
+  passwordHash String         @map("password_hash")
+  role         String         @default("user")
+  isActive     Boolean        @default(true) @map("is_active")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+
+  profile       Profile?
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+  @@schema("auth")
+}
+
+model Profile {
+  id              String   @id @default(uuid())
+  userId          String   @unique @map("user_id")
+  fullName        String?  @map("full_name")
+  headline        String?
+  location        String?
+  yearsExperience Int?     @map("years_experience")
+  skills          Json     @default("[]")  // Resume Module owned
+  preferences     Json     @default("{}")
+  embedding       Unsupported("vector(1536)")?  // AI Worker owned
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profiles")
+  @@schema("auth")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  tokenHash String   @unique @map("token_hash")  // SHA-256 hash, never plaintext
+  familyId  String   @map("family_id")            // for family-based revocation
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([tokenHash])
+  @@index([familyId])
+  @@map("refresh_tokens")
+  @@schema("auth")
+}
+
+// ─── MATCHING SCHEMA ─────────────────────────────────────────────────────────
+
+model Job {
+  id             String   @id @default(uuid())
+  title          String
+  company        String
+  description    String?
+  location       String?
+  remote         Boolean  @default(false)
+  salaryMin      Int?     @map("salary_min")
+  salaryMax      Int?     @map("salary_max")
+  skillsRequired Json     @default("[]") @map("skills_required")
+  embedding      Unsupported("vector(1536)")?  // VECTOR_DIMENSION
+  source         String
+  sourceId       String   @map("source_id")  // deterministic dedup key
+  postedAt       DateTime? @map("posted_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  matchCache MatchCache[]
+
+  @@unique([source, sourceId])
+  @@index([location])
+  @@index([remote])
+  @@index([postedAt(sort: Desc)])
+  @@map("jobs")
+  @@schema("matching")
+}
+
+model MatchCache {
+  userId      String   @map("user_id")  // no FK — cross-schema boundary enforced at app layer
+  jobId       String   @map("job_id")
+  score       Float
+  computedAt  DateTime @default(now()) @map("computed_at")
+
+  job Job @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@id([userId, jobId])
+  @@index([userId, score(sort: Desc)])
+  @@map("match_cache")
+  @@schema("matching")
+}
+
+// ─── MARKET_INTEL SCHEMA ─────────────────────────────────────────────────────
+
+model JobPostingRaw {
+  id         String   @id @default(uuid())
+  source     String
+  sourceId   String   @map("source_id")
+  rawPayload Json     @map("raw_payload")
+  ingestedAt DateTime @default(now()) @map("ingested_at")
+  processed  Boolean  @default(false)
+
+  @@unique([source, sourceId])
+  @@index([processed])
+  @@map("job_postings_raw")
+  @@schema("market_intel")
+}
+
+model SkillTrend {
+  id             String   @id @default(uuid())
+  skillName      String   @map("skill_name")
+  demandCount    Int      @map("demand_count")
+  periodStart    DateTime @map("period_start") @db.Date
+  periodEnd      DateTime @map("period_end") @db.Date
+  avgSalaryLow   Int?     @map("avg_salary_low")
+  avgSalaryHigh  Int?     @map("avg_salary_high")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  @@unique([skillName, periodStart, periodEnd])
+  @@index([periodStart, periodEnd])
+  @@index([skillName])
+  @@map("skill_trends")
+  @@schema("market_intel")
+}
+
+model SalaryBenchmark {
+  id           String   @id @default(uuid())
+  roleTitle    String   @map("role_title")
+  location     String   @default("global")
+  percentile25 Int?     @map("percentile_25")
+  percentile50 Int?     @map("percentile_50")
+  percentile75 Int?     @map("percentile_75")
+  sampleSize   Int      @default(0) @map("sample_size")
+  period       String   // e.g. '2024-Q3'
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@unique([roleTitle, location, period])
+  @@index([roleTitle])
+  @@index([location])
+  @@map("salary_benchmarks")
+  @@schema("market_intel")
+}
