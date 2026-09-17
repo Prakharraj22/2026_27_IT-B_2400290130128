@@ -235,8 +235,11 @@ async function main() {
   console.log('Seeded 5 raw job postings');
 
   // ─── Seed Skill Trends ──────────────────────────────────────────────────────
-  const periodStart = new Date('2024-01-01');
-  const periodEnd = new Date('2024-03-31');
+  // Relative to "now" (not a hardcoded past quarter) so this data always
+  // falls inside MarketIntelService's default rolling 90-day query window,
+  // regardless of when `prisma:seed` is actually run.
+  const periodEnd = new Date();
+  const periodStart = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
   const trendSkills = [
     { skill: 'TypeScript', count: 450, salaryLow: 120000, salaryHigh: 175000 },
     { skill: 'Python', count: 520, salaryLow: 115000, salaryHigh: 165000 },
@@ -273,6 +276,10 @@ async function main() {
   console.log('Seeded 10 skill trends');
 
   // ─── Seed Salary Benchmarks ─────────────────────────────────────────────────
+  const currentPeriod = (() => {
+    const now = new Date();
+    return `${now.getFullYear()}-Q${Math.ceil((now.getMonth() + 1) / 3)}`;
+  })();
   const benchmarks = [
     { role: 'Backend Engineer', location: 'global', p25: 110000, p50: 140000, p75: 175000, n: 45 },
     { role: 'Frontend Engineer', location: 'global', p25: 95000, p50: 125000, p75: 160000, n: 38 },
@@ -294,7 +301,7 @@ async function main() {
         roleTitle_location_period: {
           roleTitle: b.role,
           location: b.location,
-          period: '2024-Q1',
+          period: currentPeriod,
         },
       },
       update: {},
@@ -305,7 +312,7 @@ async function main() {
         percentile50: b.p50,
         percentile75: b.p75,
         sampleSize: b.n,
-        period: '2024-Q1',
+        period: currentPeriod,
       },
     });
   }

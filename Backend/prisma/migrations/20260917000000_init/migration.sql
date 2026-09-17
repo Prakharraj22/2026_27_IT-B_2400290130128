@@ -7,6 +7,15 @@ CREATE SCHEMA IF NOT EXISTS "auth";
 CREATE SCHEMA IF NOT EXISTS "matching";
 CREATE SCHEMA IF NOT EXISTS "market_intel";
 
+-- The `vector` type from pgvector is installed into whichever schema is
+-- first in search_path at CREATE EXTENSION time (typically `public`), but a
+-- DATABASE_URL with `?schema=auth` (used for Prisma's multiSchema feature)
+-- makes the migration connection's search_path just `auth`, so unqualified
+-- `vector(...)` column definitions below would fail to resolve. Explicitly
+-- restoring `public` here fixes that regardless of how the connection was
+-- opened, without depending on connection-string options being honored.
+SET search_path TO public, auth, matching, market_intel;
+
 -- ─── AUTH SCHEMA ────────────────────────────────────────────────────────────
 
 CREATE TABLE "auth"."users" (
